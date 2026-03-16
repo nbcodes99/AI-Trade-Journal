@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Header() {
   const currentPath = usePathname();
-  const session = useAuth();
+  const { session, isLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
 
@@ -78,7 +78,7 @@ export default function Header() {
             // onMouseLeave={() => setAvatarMenuOpen(false)}
           >
             <Image
-              src={session.user.user_metadata?.avatar_url || "/avatar.jpg"}
+              src={session.user?.user_metadata?.avatar_url || "/avatar.jpg"}
               alt="Profile"
               width={40}
               height={40}

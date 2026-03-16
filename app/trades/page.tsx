@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { ChevronDownIcon, FilePlusCorner, X } from "lucide-react";
+import { ArrowUpIcon, ChevronDownIcon, FilePlusCorner, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -36,6 +36,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FaPlus, FaPlusCircle } from "react-icons/fa";
+import { MdAdd } from "react-icons/md";
+import { IoMdArrowRoundUp } from "react-icons/io";
 
 export default function Trades() {
   const [date, setDate] = useState<Date | undefined>();
@@ -319,7 +322,14 @@ export default function Trades() {
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyDown={handleTagKeyDown}
               />
-              <Button onClick={addTag}>Add</Button>
+              <Button
+                onClick={addTag}
+                size="icon"
+                variant="outline"
+                className="cursor-pointer rounded-full"
+              >
+                <ArrowUpIcon />
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {confluenceTags.map((tag, i) => (
@@ -371,65 +381,6 @@ export default function Trades() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* <Card className="w-full mt-8">
-        <CardHeader>
-          <CardTitle className="text-center">Trade Log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" className="mb-4" onClick={fetchTrades}>
-            Refresh Trades
-          </Button>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Asset</TableHead>
-                <TableHead>Setup</TableHead>
-                <TableHead>Entry</TableHead>
-                <TableHead>Exit</TableHead>
-                <TableHead>Trade Type</TableHead>
-                <TableHead>Emotion</TableHead>
-                <TableHead>Confluence</TableHead>
-                <TableHead>ROI %</TableHead>
-                <TableHead>Result</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trades.map((trade, i) => (
-                <TableRow key={i}>
-                  <TableCell>{trade.date}</TableCell>
-                  <TableCell>{trade.asset}</TableCell>
-                  <TableCell>{trade.setup}</TableCell>
-                  <TableCell>{trade.entry}</TableCell>
-                  <TableCell>{trade.exit}</TableCell>
-                  <TableCell
-                    className={
-                      trade.trade_type === "long"
-                        ? "text-teal-400"
-                        : "text-red-500"
-                    }
-                  >
-                    {trade.trade_type}
-                  </TableCell>
-                  <TableCell>{trade.emotion}</TableCell>
-                  <TableCell>
-                    {Array.isArray(trade.confluence)
-                      ? trade.confluence.join(", ")
-                      : trade.confluence}
-                  </TableCell>
-                  <TableCell>
-                    {trade.roi !== null && trade.roi !== undefined
-                      ? `${Number(trade.roi).toFixed(2)}%`
-                      : ""}
-                  </TableCell>
-                  <TableCell>{trade.result}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card> */}
     </section>
   );
 }

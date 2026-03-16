@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useAuth } from "@/lib/session";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+import { ModeToggle } from "../components/ModeToggle";
+import Link from "next/link";
 
 export default function ProfilePage() {
-  const session = useAuth();
+  const { session } = useAuth();
   const userId = session?.user?.id ?? null;
 
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -25,7 +30,7 @@ export default function ProfilePage() {
       setLoadingProfile(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, avatar_path")
+        .select("full_name")
         .eq("id", userId)
         .single();
 
@@ -35,11 +40,8 @@ export default function ProfilePage() {
 
       if (data) {
         setFullName(data.full_name || "");
-        setAvatarUrl(data.avatar_url || null);
-        setAvatarPath(data.avatar_path || null);
       } else {
         setFullName(session?.user?.user_metadata?.full_name || "");
-        setAvatarUrl(session?.user?.user_metadata?.avatar_url || null);
       }
 
       setLoadingProfile(false);
@@ -48,38 +50,54 @@ export default function ProfilePage() {
     loadProfile();
   }, [userId, session]);
 
-  useEffect(() => {
-    if (!avatarPath) return;
-
-    let mounted = true;
-    const getSigned = async () => {
-      const { data, error } = await supabase.storage
-        .from("avatars")
-        .createSignedUrl(avatarPath, 60);
-      if (error) {
-        console.warn("Could not create signed URL:", error.message);
-        return;
-      }
-      if (mounted) setAvatarUrl(data?.signedUrl || null);
-    };
-
-    getSigned();
-    return () => {
-      mounted = false;
-    };
-  }, [avatarPath]);
-
-  if (!session) return <p>Please log in</p>;
+  if (!session)
+    return (
+      <p>
+        You're not logged in. <Link href="/login">Log in</Link>
+      </p>
+    );
 
   async function handleSave() {
     if (!userId || !session) return;
     setSaving(true);
 
     try {
+      setErrorMessage(null);
+
+      const email = session.user.email;
+      if (!email) {
+        setErrorMessage("User email is missing.");
+        setSaving(false);
+        return;
+      }
+
+      if (newPassword) {
+        if (!currentPassword) {
+          setErrorMessage("Current password is required to change password.");
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          setErrorMessage("New password and confirmation do not match.");
+          return;
+        }
+
+        const { error: authCheckError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password: currentPassword,
+          });
+
+        if (authCheckError) {
+          setErrorMessage("Current password is incorrect.");
+          return;
+        }
+      }
+
       const { error: upsertError } = await supabase.from("profiles").upsert(
         {
           id: userId,
-          email: session.user.email,
+          email,
           full_name: fullName || null,
         },
         { onConflict: "id" },
@@ -90,14 +108,21 @@ export default function ProfilePage() {
         throw upsertError;
       }
 
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { full_name: fullName || null },
-      });
+      const authUpdate: any = { data: { full_name: fullName || null } };
+      if (newPassword) {
+        authUpdate.password = newPassword;
+      }
+
+      const { error: authError } = await supabase.auth.updateUser(authUpdate);
 
       if (authError) {
         console.warn("Warning updating auth metadata:", authError.message);
       }
 
+      setNewPassword("");
+      setConfirmPassword("");
+      setCurrentPassword("");
+      setShowPassword(false);
       setEditing(false);
       setTimeout(() => window.location.reload(), 250);
     } catch {
@@ -111,18 +136,10 @@ export default function ProfilePage() {
     window.location.href = "/";
   }
 
-  const displaySrc = avatarUrl || "/avatar.jpg";
-
   return (
-    <div className="flex flex-col items-center p-12 space-y-6">
-      <div className="relative">
-        <Image
-          src={displaySrc}
-          alt="Profile"
-          width={160}
-          height={160}
-          className="rounded-full border-4 border-teal-500 object-cover"
-        />
+    <div className="flex flex-col items-center p-12 space-y-4">
+      <div className="w-full flex justify-end md:hidden">
+        <ModeToggle />
       </div>
 
       {!editing ? (
@@ -134,8 +151,14 @@ export default function ProfilePage() {
           </h1>
           <p className="text-gray-500">{session.user.email}</p>
           <div className="flex gap-4 mt-4">
-            <Button onClick={() => setEditing(true)}>Edit Profile</Button>
-            <Button onClick={handleLogout} variant="destructive">
+            <Button onClick={() => setEditing(true)} className="cursor-pointer">
+              Edit Profile
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="secondary"
+              className="cursor-pointer"
+            >
               Logout
             </Button>
           </div>
@@ -147,6 +170,51 @@ export default function ProfilePage() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground">
+              Current Password
+            </label>
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground">
+              New Password
+            </label>
+            <div className="relative mt-1">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="New password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute inset-y-0 right-2 text-sm"
+              >
+                {showPassword ? <FiEye /> : <FiEyeOff />}
+              </button>
+            </div>
+          </div>
+
+          <Input
+            type={showPassword ? "text" : "password"}
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+
+          {errorMessage && (
+            <p className="text-sm text-destructive">{errorMessage}</p>
+          )}
 
           <div className="flex gap-4">
             <Button onClick={handleSave} disabled={saving || loadingProfile}>

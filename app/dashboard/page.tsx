@@ -16,6 +16,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
+  Cell,
 } from "recharts";
 import { format } from "date-fns";
 import {
@@ -39,10 +41,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchTrades = async () => {
+      setLoading(true);
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
-      if (!user) return;
+
+      if (userError) {
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       const nameFromMeta =
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
@@ -54,10 +68,10 @@ export default function Dashboard() {
         .from("trades")
         .select("*")
         .eq("user_id", user.id)
-        .order("date", { ascending: true });
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error(error.message);
+        setTrades([]);
       } else {
         setTrades(data || []);
       }
@@ -70,14 +84,25 @@ export default function Dashboard() {
   const totalTrades = trades.length;
   const wins = trades.filter((t) => t.result === "win").length;
   const losses = trades.filter((t) => t.result === "loss").length;
-  const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+  const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
 
-  const totalPnL = trades.reduce((acc, t) => acc + (t.roi || 0), 0);
+  const totalPnL = trades.reduce((acc, t) => {
+    const roi = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
+    return acc + (isNaN(roi) ? 0 : roi);
+  }, 0);
 
-  const equityData = trades.map((t, i) => ({
-    trade: i + 1,
-    value: trades.slice(0, i + 1).reduce((acc, x) => acc + (x.roi || 0), 0),
-  }));
+  const equityData = trades.map((t, i) => {
+    const value = trades.slice(0, i + 1).reduce((acc, x) => {
+      const r = typeof x.roi === "string" ? parseFloat(x.roi) : x.roi;
+      return acc + (isNaN(r) ? 0 : r);
+    }, 0);
+    return {
+      trade: i + 1,
+      value,
+      label: t.asset || `#${i + 1}`,
+      date: t.created_at,
+    };
+  });
 
   const winLossData = [
     { name: "Wins", value: wins },
@@ -86,15 +111,16 @@ export default function Dashboard() {
 
   const setupData = Object.values(
     trades.reduce((acc: any, t) => {
-      if (!acc[t.setup])
-        acc[t.setup] = { setup: t.setup, winRate: 0, count: 0, wins: 0 };
-      acc[t.setup].count++;
-      if (t.result === "win") acc[t.setup].wins++;
+      const key = t.setup || "Unknown";
+      if (!acc[key]) acc[key] = { setup: key, winRate: 0, count: 0, wins: 0 };
+      acc[key].count++;
+      if (t.result === "win") acc[key].wins++;
       return acc;
     }, {}),
   ).map((s: any) => ({
     setup: s.setup,
     winRate: s.count ? Math.round((s.wins / s.count) * 100) : 0,
+    count: s.count,
   }));
 
   const snapshot = [
@@ -104,13 +130,15 @@ export default function Dashboard() {
   ];
 
   const recentTrades = trades.slice(-5).reverse();
+  const pieColors = ["#16a34a", "#ef4444"];
 
   return (
     <section className="">
       <h1 className="text-3xl text-center font-bold my-6">
-        Hey, <span>{userName ? `${userName}` : ""}</span>
-        👋🏼
+        Hey,{" "}
+        <span className="text-primary">{userName ? `${userName}` : ""}</span> 👋🏼
       </h1>
+
       <div className="min-h-screen text-white p-8 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {snapshot.map((item) => (
@@ -138,7 +166,7 @@ export default function Dashboard() {
                     <XAxis dataKey="trade" />
                     <YAxis />
                     <Tooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="value" />
+                    <Line type="monotone" dataKey="value" stroke="#4ade80" />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -159,10 +187,29 @@ export default function Dashboard() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
-                      label
+                      innerRadius={40}
+                      outerRadius={72}
+                      paddingAngle={6}
+                      startAngle={90}
+                      endAngle={-270}
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        `${name} ${Math.round((percent || 0) * 100)}%`
+                      }
+                    >
+                      {winLossData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={pieColors[index % pieColors.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) =>
+                        `${value} trade${value === 1 ? "" : "s"}`
+                      }
                     />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Legend verticalAlign="bottom" align="center" />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -181,7 +228,7 @@ export default function Dashboard() {
                     <XAxis dataKey="setup" />
                     <YAxis />
                     <Tooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="winRate" />
+                    <Bar dataKey="winRate" fill="#4d7c0f" />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -211,9 +258,11 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {recentTrades.map((trade, i) => (
-                  <TableRow key={i}>
+                  <TableRow key={trade.id || i}>
                     <TableCell>
-                      {trade.date ? format(new Date(trade.date), "MMM dd") : ""}
+                      {trade.created_at
+                        ? format(new Date(trade.created_at), "MMM dd")
+                        : ""}
                     </TableCell>
                     <TableCell>{trade.asset}</TableCell>
                     <TableCell>{trade.setup}</TableCell>
@@ -221,11 +270,15 @@ export default function Dashboard() {
                     <TableCell>{trade.exit}</TableCell>
                     <TableCell>{trade.trade_type}</TableCell>
                     <TableCell>{trade.emotion}</TableCell>
-                    <TableCell>{trade.confluence}</TableCell>
+                    <TableCell>
+                      {Array.isArray(trade.confluence)
+                        ? trade.confluence.join(", ")
+                        : trade.confluence}
+                    </TableCell>
                     <TableCell>{trade.result}</TableCell>
                     <TableCell>
                       {trade.roi !== null && trade.roi !== undefined
-                        ? `${trade.roi.toFixed(2)}%`
+                        ? `${(typeof trade.roi === "number" ? trade.roi : parseFloat(trade.roi)).toFixed(2)}%`
                         : ""}
                     </TableCell>
                   </TableRow>

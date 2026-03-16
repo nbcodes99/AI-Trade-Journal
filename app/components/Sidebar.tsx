@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/session";
 import Image from "next/image";
 import classnames from "classnames";
+import { IoIosSettings } from "react-icons/io";
 
 interface SidebarProps {
   open: boolean;
@@ -12,7 +12,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const session = useAuth();
+  const { session, isLoading } = useAuth();
   const links = session
     ? [
         { label: "Dashboard", href: "/dashboard" },
@@ -65,15 +65,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         {session && (
           <div className="mt-4 mb-14">
-            <Link href="/profile" className="flex items-center gap-2">
-              <Image
-                src={session.user.user_metadata?.avatar_url || "/avatar.jpg"}
-                alt="Profile"
-                width={40}
-                height={40}
-                className="rounded-full border border-gray-300"
-              />
-              <span className="text-sm font-medium">Profile</span>
+            <Link href="/profile" className="flex items-center gap-2 text-2xl">
+              <IoIosSettings />
+              <span className="text-sm font-medium">Settings</span>
             </Link>
           </div>
         )}
