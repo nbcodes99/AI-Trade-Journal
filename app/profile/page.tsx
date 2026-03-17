@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/session";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { ModeToggle } from "../components/ModeToggle";
 import Link from "next/link";
@@ -145,11 +146,21 @@ export default function ProfilePage() {
       {!editing ? (
         <>
           <h1 className="text-2xl font-bold">
-            {fullName ||
+            {loadingProfile ? (
+              <Skeleton className="h-8 w-44" />
+            ) : (
+              fullName ||
               session.user.user_metadata?.full_name ||
-              session.user.email}
+              session.user.email
+            )}
           </h1>
-          <p className="text-gray-500">{session.user.email}</p>
+          <p className="text-gray-500">
+            {loadingProfile ? (
+              <Skeleton className="h-4 w-44" />
+            ) : (
+              session.user.email
+            )}
+          </p>
           <div className="flex gap-4 mt-4">
             <Button onClick={() => setEditing(true)} className="cursor-pointer">
               Edit Profile

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
   Line,
@@ -136,104 +137,143 @@ export default function Dashboard() {
     <section className="">
       <h1 className="text-3xl text-center font-bold my-6">
         Hey,{" "}
-        <span className="text-primary">{userName ? `${userName}` : ""}</span> 👋🏼
+        <span className="text-primary">
+          {loading ? (
+            <Skeleton className="inline-block h-8 w-28" />
+          ) : userName ? (
+            `${userName}`
+          ) : (
+            ""
+          )}
+        </span>{" "}
+        👋🏼
       </h1>
 
       <div className="min-h-screen text-white p-8 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {snapshot.map((item) => (
-            <Card key={item.title}>
-              <CardHeader>
-                <CardTitle>{item.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{item.value}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {loading
+            ? ["a", "b", "c"].map((key) => (
+                <Card key={key}>
+                  <CardHeader>
+                    <CardTitle>
+                      <Skeleton className="h-4 w-24" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-28" />
+                  </CardContent>
+                </Card>
+              ))
+            : snapshot.map((item) => (
+                <Card key={item.title}>
+                  <CardHeader>
+                    <CardTitle>{item.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{item.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Equity Curve</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig}>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={equityData}>
-                    <CartesianGrid strokeDasharray="4 4" />
-                    <XAxis dataKey="trade" />
-                    <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="value" stroke="#4ade80" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Win/Loss Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig}>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={winLossData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={72}
-                      paddingAngle={6}
-                      startAngle={90}
-                      endAngle={-270}
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${Math.round((percent || 0) * 100)}%`
-                      }
-                    >
-                      {winLossData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={pieColors[index % pieColors.length]}
+          {loading ? (
+            ["equity", "winloss", "setup"].map((key) => (
+              <Card key={key}>
+                <CardHeader>
+                  <CardTitle>
+                    <Skeleton className="h-4 w-28" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-48 w-full" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Equity Curve</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={equityData}>
+                        <CartesianGrid strokeDasharray="4 4" />
+                        <XAxis dataKey="trade" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#4ade80"
                         />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) =>
-                        `${value} trade${value === 1 ? "" : "s"}`
-                      }
-                    />
-                    <Legend verticalAlign="bottom" align="center" />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance by Setup</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig}>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={setupData}>
-                    <CartesianGrid strokeDasharray="4 4" />
-                    <XAxis dataKey="setup" />
-                    <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="winRate" fill="#4d7c0f" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Win/Loss Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={winLossData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={72}
+                          paddingAngle={6}
+                          startAngle={90}
+                          endAngle={-270}
+                          labelLine={false}
+                          label={({ name, percent }) =>
+                            `${name} ${Math.round((percent || 0) * 100)}%`
+                          }
+                        >
+                          {winLossData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={pieColors[index % pieColors.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend verticalAlign="bottom" align="center" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance by Setup</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig}>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={setupData}>
+                        <CartesianGrid strokeDasharray="4 4" />
+                        <XAxis dataKey="setup" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="winRate" fill="#4d7c0f" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
 
         <Card className="w-full max-w-full">
@@ -253,36 +293,114 @@ export default function Dashboard() {
                   <TableHead>Emotion</TableHead>
                   <TableHead>Confluence</TableHead>
                   <TableHead>Result</TableHead>
-                  <TableHead>ROI (%)</TableHead>
+                  <TableHead className="text-right">ROI (%)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentTrades.map((trade, i) => (
-                  <TableRow key={trade.id || i}>
-                    <TableCell>
-                      {trade.created_at
-                        ? format(new Date(trade.created_at), "MMM dd")
-                        : ""}
-                    </TableCell>
-                    <TableCell>{trade.asset}</TableCell>
-                    <TableCell>{trade.setup}</TableCell>
-                    <TableCell>{trade.entry}</TableCell>
-                    <TableCell>{trade.exit}</TableCell>
-                    <TableCell>{trade.trade_type}</TableCell>
-                    <TableCell>{trade.emotion}</TableCell>
-                    <TableCell>
-                      {Array.isArray(trade.confluence)
-                        ? trade.confluence.join(", ")
-                        : trade.confluence}
-                    </TableCell>
-                    <TableCell>{trade.result}</TableCell>
-                    <TableCell>
-                      {trade.roi !== null && trade.roi !== undefined
-                        ? `${(typeof trade.roi === "number" ? trade.roi : parseFloat(trade.roi)).toFixed(2)}%`
-                        : ""}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {loading
+                  ? Array.from({ length: 5 }).map((_, idx) => (
+                      <TableRow key={`skeleton-${idx}`}>
+                        {Array.from({ length: 10 }).map((__, ci) => (
+                          <TableCell key={ci} className="py-3">
+                            <Skeleton className="h-4 w-full" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  : recentTrades.map((trade) => {
+                      const isWin = trade.result === "win";
+                      const rowBg = isWin
+                        ? "bg-green-50 dark:bg-green-900/30"
+                        : trade.result === "loss"
+                          ? "bg-red-50 dark:bg-red-900/20"
+                          : "bg-white dark:bg-slate-900/40";
+                      const roiValue =
+                        trade.roi !== null && trade.roi !== undefined
+                          ? typeof trade.roi === "number"
+                            ? trade.roi
+                            : parseFloat(trade.roi)
+                          : null;
+                      const roiText =
+                        roiValue !== null && !isNaN(roiValue)
+                          ? `${roiValue.toFixed(2)}%`
+                          : "";
+                      const roiColor =
+                        roiValue === null
+                          ? "text-muted-foreground"
+                          : roiValue > 0
+                            ? "text-green-600 dark:text-green-300"
+                            : roiValue < 0
+                              ? "text-red-600 dark:text-red-300"
+                              : "text-muted-foreground";
+
+                      return (
+                        <TableRow
+                          key={trade.id}
+                          className={`${rowBg} transition-transform`}
+                        >
+                          <TableCell className="py-3">
+                            {trade.created_at
+                              ? format(
+                                  new Date(trade.created_at),
+                                  "MMM dd, yyyy",
+                                )
+                              : ""}
+                          </TableCell>
+
+                          <TableCell className="font-medium">
+                            {trade.asset || "—"}
+                          </TableCell>
+
+                          <TableCell
+                            className="max-w-xs truncate"
+                            title={trade.setup || ""}
+                          >
+                            {trade.setup || "—"}
+                          </TableCell>
+
+                          <TableCell>{trade.entry ?? "—"}</TableCell>
+
+                          <TableCell>{trade.exit ?? "—"}</TableCell>
+
+                          <TableCell>{trade.trade_type ?? "—"}</TableCell>
+
+                          <TableCell>{trade.emotion ?? "—"}</TableCell>
+
+                          <TableCell
+                            className="max-w-sm truncate"
+                            title={
+                              Array.isArray(trade.confluence)
+                                ? trade.confluence.join(", ")
+                                : trade.confluence
+                            }
+                          >
+                            {Array.isArray(trade.confluence)
+                              ? trade.confluence.join(", ")
+                              : (trade.confluence ?? "—")}
+                          </TableCell>
+
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                isWin
+                                  ? "bg-primary text-accent-foreground dark:bg-primary dark:text-primary-foreground"
+                                  : trade.result === "loss"
+                                    ? "bg-destructive text-destructive-foreground"
+                                    : "bg-secondary text-secondary-foreground"
+                              }`}
+                            >
+                              {trade.result ? trade.result.toUpperCase() : "—"}
+                            </span>
+                          </TableCell>
+
+                          <TableCell
+                            className={`text-right font-medium ${roiColor}`}
+                          >
+                            {roiText}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
               </TableBody>
             </Table>
           </CardContent>
