@@ -383,7 +383,7 @@ export default function Dashboard() {
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                                 isWin
-                                  ? "bg-primary text-accent-foreground dark:bg-primary dark:text-primary-foreground"
+                                  ? "bg-primary text-accent-foreground"
                                   : trade.result === "loss"
                                     ? "bg-destructive text-destructive-foreground"
                                     : "bg-secondary text-secondary-foreground"
