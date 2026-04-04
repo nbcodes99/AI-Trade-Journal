@@ -1,26 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { ArrowUpIcon, ChevronDownIcon, FilePlusCorner, X } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -29,358 +11,177 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DialogFooter,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { FaPlus, FaPlusCircle } from "react-icons/fa";
-import { MdAdd } from "react-icons/md";
-import { IoMdArrowRoundUp } from "react-icons/io";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 export default function Trades() {
-  const [date, setDate] = useState<Date | undefined>();
-  const [setup, setSetup] = useState("");
-  const [customSetup, setCustomSetup] = useState("");
-  const [open, setOpen] = useState(false);
-  const [tradeType, setTradeType] = useState("");
-  const [emotion, setEmotion] = useState("");
-  const [entry, setEntry] = useState("");
-  const [exit, setExit] = useState("");
-  const [asset, setAsset] = useState("");
-  const [confluenceTags, setConfluenceTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
-  const [marketCondition, setMarketCondition] = useState("");
-  const [timeframe, setTimeframe] = useState("");
-  const [confidence, setConfidence] = useState<number>();
-  const [loading, setLoading] = useState(false);
   const [trades, setTrades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(trades.length / pageSize));
+  const paginatedTrades = trades.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
-  const handleChangeSetup = (value: string) => {
-    if (value === "other") {
-      setOpen(true);
-    } else {
-      setSetup(value);
-    }
-  };
+  useEffect(() => {
+    const fetchTrades = async () => {
+      setLoading(true);
 
-  const handleSaveSetup = () => {
-    if (customSetup.trim() !== "") {
-      setSetup(customSetup.trim());
-    }
-    setOpen(false);
-    setCustomSetup("");
-  };
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  const addTag = () => {
-    const tag = newTag.trim();
-    if (tag !== "" && !confluenceTags.includes(tag)) {
-      setConfluenceTags((prev) => [...prev, tag]);
-    }
-    setNewTag("");
-  };
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag();
-    }
-  };
+      const { data, error } = await supabase
+        .from("trades")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
 
-  const removeTag = (tag: string) => {
-    setConfluenceTags((prev) => prev.filter((t) => t !== tag));
-  };
+      if (!error) {
+        setTrades(data || []);
+      }
 
-  const handleSubmit = async () => {
-    setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
       setLoading(false);
-      return;
-    }
-
-    const entryNum = Number(entry);
-    const exitNum = Number(exit);
-
-    const roi =
-      entryNum && exitNum
-        ? tradeType === "long"
-          ? ((exitNum - entryNum) / entryNum) * 100
-          : ((entryNum - exitNum) / entryNum) * 100
-        : 0;
-
-    const result =
-      entryNum && exitNum
-        ? tradeType === "long"
-          ? exitNum > entryNum
-            ? "win"
-            : "loss"
-          : exitNum < entryNum
-            ? "win"
-            : "loss"
-        : null;
-
-    const newTrade = {
-      user_id: user.id,
-      date: date ? format(date, "yyyy-MM-dd") : null,
-      asset: asset.trim() || null,
-      trade_type: tradeType || null,
-      entry: entryNum || null,
-      exit: exitNum || null,
-      setup: setup || null,
-      confluence: confluenceTags.length ? confluenceTags : null,
-      market_condition: marketCondition || null,
-      timeframe: timeframe || null,
-      confidence_level: confidence || null,
-      emotion: emotion || null,
-      roi,
-      result,
     };
 
-    const { error } = await supabase.from("trades").insert(newTrade);
+    fetchTrades();
+  }, []);
 
-    if (!error) {
-      setTrades((prev) => [...prev, newTrade]);
-      setDate(undefined);
-      setSetup("");
-      setCustomSetup("");
-      setTradeType("");
-      setEmotion("");
-      setEntry("");
-      setExit("");
-      setAsset("");
-      setConfluenceTags([]);
-      setNewTag("");
-      setMarketCondition("");
-      setTimeframe("");
-      setConfidence(5);
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount);
     }
-
-    setLoading(false);
-  };
-
-  const fetchTrades = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("trades")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false });
-
-    if (!error) {
-      setTrades(data || []);
-    }
-  };
+  }, [currentPage, pageCount]);
 
   return (
-    <section className="flex flex-col items-center w-full max-w-4xl mx-auto px-2 mt-6">
-      <h1 className="text-3xl font-bold mb-8">Trades</h1>
+    <section className="flex flex-col items-center w-full max-w-6xl mx-auto px-2 mt-6">
+      <div className="w-full flex flex-col gap-3 mb-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Trades Review</h1>
+            <p className="max-w-3xl text-sm text-muted-foreground mt-2">
+              This page shows every trade you journaled. Use the Journal page to
+              add new entries, then come back here to review your full trade
+              history.
+            </p>
+          </div>
+          <Button asChild>
+            <a href="/journal">Go to Journal</a>
+          </Button>
+        </div>
+      </div>
 
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-center">Add New Trade</CardTitle>
+          <CardTitle>All Journaled Trades</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                data-empty={!date}
-                className="w-full data-[empty=true]:text-muted-foreground justify-between text-left font-normal"
-              >
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
-                <ChevronDownIcon />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                defaultMonth={date}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Input
-            placeholder="Asset (eg. BTCUSD)"
-            className="w-full"
-            value={asset}
-            onChange={(e) => setAsset(e.target.value)}
-          />
-
-          <Select onValueChange={setTradeType} value={tradeType}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Long/Short" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="long">Long</SelectItem>
-              <SelectItem value="short">Short</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Input
-            placeholder="Entry"
-            className="w-full"
-            type="number"
-            value={entry}
-            onChange={(e) => setEntry(e.target.value)}
-          />
-          <Input
-            placeholder="Exit"
-            className="w-full"
-            type="number"
-            value={exit}
-            onChange={(e) => setExit(e.target.value)}
-          />
-
-          <Select onValueChange={handleChangeSetup} value={setup}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Setup" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="breakout">Breakout</SelectItem>
-              <SelectItem value="pullback">Pullback</SelectItem>
-              <SelectItem value="smc">SMC</SelectItem>
-              <SelectItem value="support/resistance">
-                Support/Resistance
-              </SelectItem>
-              <SelectItem value="range">Range</SelectItem>
-              <SelectItem value="trend">Trend Continuation</SelectItem>
-              <SelectItem value="reversal">Reversal</SelectItem>
-              <SelectItem value="scalp">Scalp</SelectItem>
-              <SelectItem value="news">News Trade</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select onValueChange={setEmotion} value={emotion}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Emotion at Entry" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="confident">Confident</SelectItem>
-              <SelectItem value="fearful">Fearful</SelectItem>
-              <SelectItem value="greedy">Greedy</SelectItem>
-              <SelectItem value="tired">Tired</SelectItem>
-              <SelectItem value="revenge">Revenge</SelectItem>
-              <SelectItem value="fomo">FOMO</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select onValueChange={setMarketCondition} value={marketCondition}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Market Condition" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="trending">Trending</SelectItem>
-              <SelectItem value="ranging">Ranging</SelectItem>
-              <SelectItem value="volatile">Volatile</SelectItem>
-              <SelectItem value="low_volume">Low Volume</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select onValueChange={setTimeframe} value={timeframe}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1m">1m</SelectItem>
-              <SelectItem value="5m">5m</SelectItem>
-              <SelectItem value="30m">30m</SelectItem>
-              <SelectItem value="1h">1h</SelectItem>
-              <SelectItem value="4h">4h</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Input
-            placeholder="Confidence Level (1-10)"
-            className="w-full"
-            type="number"
-            min={1}
-            max={10}
-            value={confidence}
-            onChange={(e) => setConfidence(Number(e.target.value))}
-          />
-          <div className="col-span-2">
-            <div className="flex gap-2 mb-2">
-              <Input
-                placeholder="Add confluence tag"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-              />
-              <Button
-                onClick={addTag}
-                size="icon"
-                variant="outline"
-                className="cursor-pointer rounded-full"
-              >
-                <ArrowUpIcon />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {confluenceTags.map((tag, i) => (
-                <span
-                  key={i}
-                  className="flex items-center bg-gray-700 text-white px-2 py-1 rounded-full text-sm"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    className="ml-1 text-red-400"
-                    onClick={() => removeTag(tag)}
-                  >
-                    <X size={14} />
-                  </button>
-                </span>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((item) => (
+                <Skeleton key={item} className="h-12 w-full rounded-md" />
               ))}
             </div>
-          </div>
-
-          {loading ? (
-            <Button disabled className="cursor-none col-span-2 w-full">
-              <Spinner data-icon="inline-start" />
-            </Button>
+          ) : trades.length === 0 ? (
+            <div className="rounded-xl border border-border bg-muted p-6 text-muted-foreground">
+              <p className="mb-2 text-foreground font-medium">
+                No trades found yet.
+              </p>
+              <p>
+                Head to the{" "}
+                <a href="/journal" className="text-primary underline">
+                  Journal
+                </a>{" "}
+                page to log your first trade.
+              </p>
+            </div>
           ) : (
-            <Button
-              className="cursor-pointer col-span-2 w-full"
-              onClick={handleSubmit}
-            >
-              <FilePlusCorner />
-              Add Trade
-            </Button>
+            <>
+              <div className="overflow-x-auto rounded-3xl border border-border bg-card shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead>Date</TableHead>
+                      <TableHead>Asset</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Result</TableHead>
+                      <TableHead>ROI</TableHead>
+                      <TableHead>Setup</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTrades.map((trade) => (
+                      <TableRow
+                        key={
+                          trade.id ||
+                          `${trade.date}-${trade.asset}-${trade.entry}`
+                        }
+                        className="hover:bg-muted/20"
+                      >
+                        <TableCell>
+                          {trade.date
+                            ? format(new Date(trade.date), "MMM d, yyyy")
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {trade.asset || "Unknown"}
+                        </TableCell>
+                        <TableCell>{trade.trade_type || "—"}</TableCell>
+                        <TableCell>{trade.result || "—"}</TableCell>
+                        <TableCell>
+                          {typeof trade.roi === "number"
+                            ? `${trade.roi.toFixed(2)}%`
+                            : (trade.roi ?? "—")}
+                        </TableCell>
+                        <TableCell>{trade.setup || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing {paginatedTrades.length} of {trades.length} trades
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === pageCount}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.min(pageCount, page + 1))
+                    }
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter Custom Setup</DialogTitle>
-          </DialogHeader>
-          <Input
-            placeholder="Type your setup"
-            value={customSetup}
-            onChange={(e) => setCustomSetup(e.target.value)}
-          />
-          <DialogFooter>
-            <Button onClick={handleSaveSetup}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }

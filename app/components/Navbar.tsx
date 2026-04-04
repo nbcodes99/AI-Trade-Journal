@@ -40,17 +40,18 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 backdrop-blur-sm border-b">
+    <header className="fixed inset-x-0 top-0 z-50 backdrop-blur-sm border-b py-10">
       <nav className="container mx-auto flex max-w-5xl justify-between items-center px-8">
-        <Link href="/" className="flex items-center">
-          <Image
+        <Link href="/" className="flex items-center font-medium tracking-wide">
+          {/* <Image
             src="/glint1.png"
             alt="Glint"
             width={180}
             height={180}
             priority
-          />
-          <span className="sr-only">Glint</span>
+          /> */}
+          {/* <span className="sr-only">Glint</span> */}
+          Glint
         </Link>
 
         <ul className="hidden md:flex gap-8">
@@ -59,7 +60,8 @@ export default function Header() {
               <Link
                 href={link.href}
                 className={classnames("transition-colors", {
-                  "border-b-2 font-medium": link.href === currentPath,
+                  "border-b-2 font-medium text-primary border-primary":
+                    link.href === currentPath,
                   "font-medium text-muted-foreground":
                     link.href !== currentPath,
                 })}
@@ -74,8 +76,6 @@ export default function Header() {
           <div
             className="ml-4 hidden md:block relative"
             onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
-            // onMouseEnter={() => setAvatarMenuOpen(true)}
-            // onMouseLeave={() => setAvatarMenuOpen(false)}
           >
             <Image
               src={session.user?.user_metadata?.avatar_url || "/avatar.jpg"}
@@ -116,10 +116,9 @@ export default function Header() {
                   <Link
                     href={link.href}
                     className={classnames("transition-colors", {
-                      "text-teal-700 border-b-2 border-teal-700":
+                      "text-primary border-b-2 border-primary":
                         link.href === currentPath,
-                      "text-teal-400 hover:text-teal-300":
-                        link.href !== currentPath,
+                      "text-foreground": link.href !== currentPath,
                     })}
                   >
                     {link.label}

@@ -16,6 +16,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const links = session
     ? [
         { label: "Dashboard", href: "/dashboard" },
+        { label: "Journal", href: "/journal" },
         { label: "Trades", href: "/trades" },
         { label: "Insights", href: "/insights" },
       ]
@@ -36,7 +37,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={classnames(
-          "fixed inset-y-0 left-0 bg-sidebar/40 backdrop-blur-sm border-r border-sidebar-border w-64 p-6 flex flex-col justify-between transform transition-transform duration-200 z-40",
+          "fixed inset-y-0 left-0 bg-sidebar/40 backdrop-blur-sm border-r border-sidebar-border w-56 p-6 flex flex-col justify-between transform transition-transform duration-200 z-40",
           {
             "-translate-x-full": !open,
             "translate-x-0": open,
@@ -46,7 +47,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       >
         <div>
           <Link href="/" className="flex items-center justify-around">
-            <Image src="/glint1.png" alt="Glint" width={220} height={220} />
+            <Image src="/glint2.png" alt="Glint" width={220} height={220} />
             <span className="sr-only">Glint</span>
           </Link>
           <nav className="flex flex-col gap-4 mt-6">

@@ -2,6 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Field,
   FieldDescription,
   FieldGroup,
@@ -21,7 +29,10 @@ export default function Login() {
       password,
     });
     if (error) alert(error.message);
-    else alert("Logged in!");
+    else {
+      alert("Logged in!");
+      window.location.href = window.location.origin + "/dashboard";
+    }
   };
 
   const handleForgot = async () => {
@@ -37,50 +48,77 @@ export default function Login() {
   };
 
   return (
-    <>
-      <section className="pt-36 w-full flex flex-col items-center px-10">
-        <h1 className="text-3xl font-bold text-center">Login Now</h1>
-        <p className="text-center text-zinc-400 text-sm my-3">
-          Don't have an account, sign up{" "}
-          <a href="/signup" className="underline text-indigo-500">
-            here
-          </a>
-        </p>
-        <form className="w-full max-w-md mt-10">
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="fieldgroup-email">Email</FieldLabel>
-              <Input
-                id="fieldgroup-email"
-                type="email"
-                placeholder="name@example.com"
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="fieldgroup-password">Password</FieldLabel>
-              <Input
-                id="fieldgroup-password"
-                type="password"
-                placeholder="••••••••"
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-            <Field orientation="horizontal">
-              <Button type="button" onClick={handleLogin}>
-                Submit
-              </Button>
-              <button
-                type="button"
-                className="ml-4 text-sm text-indigo-500 underline"
-                onClick={handleForgot}
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+          <CardDescription>Sign in to your account to continue</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}
+            className="space-y-4"
+          >
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Field>
+            </FieldGroup>
+          </form>
+        </CardContent>
+
+        <CardFooter className="flex flex-col space-y-4">
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            onClick={handleLogin}
+          >
+            Sign In
+          </Button>
+
+          <div className="flex flex-col items-center w-full space-y-2">
+            <button
+              type="button"
+              className="text-sm text-indigo-600 hover:text-indigo-500 underline"
+              onClick={handleForgot}
+            >
+              Forgot password?
+            </button>
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <a
+                href="/signup"
+                className="text-indigo-600 hover:text-indigo-500 underline"
               >
-                Forgot password?
-              </button>
-            </Field>
-          </FieldGroup>
-        </form>
-      </section>
-    </>
+                Sign up
+              </a>
+            </p>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
