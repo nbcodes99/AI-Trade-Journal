@@ -41,58 +41,60 @@ export default function Signup() {
   };
 
   return (
-    <section className="pt-36 w-full flex flex-col items-center px-10">
-      <h1 className="text-3xl font-bold text-center">Sign Up</h1>
-      <p className="text-center text-zinc-400 text-sm my-3">
-        If you have an account, login{" "}
-        <a href="/login" className="underline text-indigo-500">
-          now
-        </a>
-      </p>
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg">
+        <h1 className="text-3xl font-bold text-center mb-2">Sign Up</h1>
+        <p className="text-center text-zinc-400 text-sm mb-8">
+          If you have an account, login{" "}
+          <a href="/login" className="underline text-indigo-500">
+            now
+          </a>
+        </p>
 
-      <form className="w-full max-w-md mt-10" onSubmit={handleSubmit}>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="fieldgroup-name">Name</FieldLabel>
-            <Input
-              id="fieldgroup-name"
-              placeholder="Jake"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="fieldgroup-email">Email</FieldLabel>
-            <Input
-              id="fieldgroup-email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="fieldgroup-password">Password</FieldLabel>
-            <Input
-              id="fieldgroup-password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
-          {error && (
-            <FieldDescription className="text-red-500">
-              {error}
-            </FieldDescription>
-          )}
-          <Field orientation="horizontal">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Signing up..." : "Submit"}
-            </Button>
-          </Field>
-        </FieldGroup>
-      </form>
-    </section>
+        <form className="w-full" onSubmit={handleSubmit}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="fieldgroup-name">Name</FieldLabel>
+              <Input
+                id="fieldgroup-name"
+                placeholder="Jake"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="fieldgroup-email">Email</FieldLabel>
+              <Input
+                id="fieldgroup-email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="fieldgroup-password">Password</FieldLabel>
+              <Input
+                id="fieldgroup-password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+            {error && (
+              <FieldDescription className="text-red-500">
+                {error}
+              </FieldDescription>
+            )}
+            <Field orientation="horizontal">
+              <Button type="submit" disabled={loading}>
+                {loading ? "Signing up..." : "Submit"}
+              </Button>
+            </Field>
+          </FieldGroup>
+        </form>
+      </div>
+    </div>
   );
 }

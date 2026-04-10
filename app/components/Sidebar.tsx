@@ -4,7 +4,17 @@ import Link from "next/link";
 import { useAuth } from "@/lib/session";
 import Image from "next/image";
 import classnames from "classnames";
+import { usePathname } from "next/navigation";
 import { IoIosSettings } from "react-icons/io";
+import {
+  Home,
+  BookOpen,
+  ListChecks,
+  BarChart3,
+  Layers,
+  CreditCard,
+  LogIn,
+} from "lucide-react";
 
 interface SidebarProps {
   open: boolean;
@@ -12,18 +22,19 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
+  const pathname = usePathname();
   const { session, isLoading } = useAuth();
   const links = session
     ? [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Journal", href: "/journal" },
-        { label: "Trades", href: "/trades" },
-        { label: "Insights", href: "/insights" },
+        { label: "Dashboard", href: "/dashboard", icon: Home },
+        { label: "Journal", href: "/journal", icon: BookOpen },
+        { label: "Trades", href: "/trades", icon: ListChecks },
+        { label: "Insights", href: "/insights", icon: BarChart3 },
       ]
     : [
-        { label: "Features", href: "/features" },
-        { label: "Pricing", href: "/pricing" },
-        { label: "Login", href: "/login" },
+        { label: "Features", href: "/features", icon: Layers },
+        { label: "Pricing", href: "/pricing", icon: CreditCard },
+        { label: "Login", href: "/login", icon: LogIn },
       ];
 
   return (
@@ -46,21 +57,35 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         )}
       >
         <div>
-          <Link href="/" className="flex items-center justify-around">
-            <Image src="/glint2.png" alt="Glint" width={220} height={220} />
+          <Link href="/">
+            <Image src="/glint1.png" alt="Glint" width={220} height={220} />
             <span className="sr-only">Glint</span>
           </Link>
           <nav className="flex flex-col gap-4 mt-6">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-base font-medium text-sidebar-foreground"
-                onClick={onClose}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {links.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={classnames(
+                    "flex flex-col items-start gap-1 text-base font-medium text-sidebar-foreground transition-colors",
+                    {
+                      "text-primary": isActive,
+                    },
+                  )}
+                  onClick={onClose}
+                >
+                  <div className="flex items-center gap-3">
+                    <link.icon className="h-4 w-4 text-current" />
+                    {link.label}
+                  </div>
+                  {isActive && (
+                    <span className="block h-0.5 w-8 rounded-full bg-primary" />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 

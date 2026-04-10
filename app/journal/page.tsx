@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { IoIosArrowDown } from "react-icons/io";
 
 export default function Journal() {
   const [date, setDate] = useState<Date | undefined>();
@@ -165,7 +166,7 @@ export default function Journal() {
         <CardHeader>
           <CardTitle className="text-center">Add New Trade</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="flex flex-col gap-4 md:grid md:grid-cols-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -174,7 +175,7 @@ export default function Journal() {
                 className="w-full data-[empty=true]:text-muted-foreground justify-between text-left font-normal"
               >
                 {date ? format(date, "PPP") : <span>Pick a date</span>}
-                <span className="text-muted-foreground">▼</span>
+                <IoIosArrowDown />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -230,9 +231,7 @@ export default function Journal() {
               <SelectItem value="support/resistance">
                 Support/Resistance
               </SelectItem>
-              <SelectItem value="range">Range</SelectItem>
               <SelectItem value="trend">Trend Continuation</SelectItem>
-              <SelectItem value="reversal">Reversal</SelectItem>
               <SelectItem value="scalp">Scalp</SelectItem>
               <SelectItem value="news">News Trade</SelectItem>
               <SelectItem value="other">Other</SelectItem>

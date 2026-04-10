@@ -199,11 +199,26 @@ Provide a clear, concise analysis in 3-4 paragraphs.
     avgRoi: s.total ? (s.avgRoi / s.total).toFixed(2) : "0.00",
   }));
 
+  const sortedSetups = [...setupPerformance].sort(
+    (a, b) =>
+      b.winRate - a.winRate || parseFloat(b.avgRoi) - parseFloat(a.avgRoi),
+  );
+
+  const topSetups = sortedSetups
+    .slice(0, 2)
+    .map((s) => s.setup)
+    .join(" and ");
+  const topSetupWins = sortedSetups
+    .slice(0, 2)
+    .map((s) => `${s.setup} (${s.winRate}% win)`)
+    .join(" and ");
+  const averageRoi = totalTrades ? (totalPnL / totalTrades).toFixed(2) : "0.00";
+
   const placeholderInsights = getPlaceholderInsights();
   const showFakeInsights = !aiInsights || aiInsights === placeholderInsights;
 
   return (
-    <section className="min-h-screen p-8 space-y-12">
+    <section className="min-h-screen space-y-12 px-4 py-8 md:p-8">
       <h1 className="text-3xl text-center font-bold my-6">Trading Insights</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -254,139 +269,143 @@ Provide a clear, concise analysis in 3-4 paragraphs.
       </div>
       <Card className="w-full max-w-full">
         <CardHeader>
-          <CardTitle>AI-Powered Insights</CardTitle>
+          <CardTitle className="text-center">AI-Powered Insights</CardTitle>
         </CardHeader>
         <CardContent>
           {aiLoading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-11/12" />
               <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-10/12" />
+              <Skeleton className="h-4 w-full" />
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="items-center justify-between rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground hidden md:flex">
-                <span>Last insights generated at</span>
+            <div className="space-y-6 w-full overflow-visible">
+              {/* <div className="flex flex-col gap-3 rounded-xl border border-border bg-px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
                 <span className="font-semibold text-foreground">
+                  Last insights generated at
+                </span>
+                <span className="text-right text-foreground">
                   {lastInsightsAt}
                 </span>
-              </div>
+              </div> */}
 
               {showFakeInsights ? (
-                <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <p className="mt-1 text-lg font-semibold text-foreground">
-                        How you trade
+                <div className="rounded-3xl border border-border bg-background p-6 shadow-lg shadow-black/5">
+                  <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-4 mb-6">
+                    <div className="rounded-2xl bg-primary/5 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Trades
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        {totalTrades}
                       </p>
                     </div>
-                    <div className="text-right hidden md:block">
-                      <div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                        {totalTrades} trade{totalTrades === 1 ? "" : "s"}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Confidence: Low
-                      </div>
+                    <div className="rounded-2xl bg-emerald-500/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Win rate
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        {winRate}%
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-slate-500/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Total ROI
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        ${totalPnL.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-violet-500/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Avg ROI
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-foreground">
+                        {averageRoi}%
+                      </p>
                     </div>
                   </div>
 
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    You trade a small set of repeatable setups, usually tagging
-                    market condition and emotion inconsistently. Your trades
-                    show a {winRate}% win rate and a total P&L of $
-                    {totalPnL.toFixed(2)} — wins cluster around clear
-                    confluences, while losses often happen in choppy markets or
-                    when exits are emotion-driven.
-                  </p>
-
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">
-                    What you're doing wrong
-                  </h4>
-                  <ul className="mb-4 list-inside list-disc text-sm text-muted-foreground space-y-1">
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Inconsistent tagging
-                      </span>{" "}
-                      — market condition and exit reason are missing on many
-                      trades, reducing analysis quality.
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Premature exits
-                      </span>{" "}
-                      — winners are often cut short instead of holding to the
-                      first target.
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Position sizing drift
-                      </span>{" "}
-                      — size increases after wins and during streaks, amplifying
-                      drawdowns.
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Trading in choppy markets
-                      </span>{" "}
-                      — taking setups without clear volume or trend
-                      confirmation.
-                    </li>
-                  </ul>
-
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">
-                    What's working for you
-                  </h4>
-                  <ul className="mb-4 list-inside list-disc text-sm text-muted-foreground space-y-1">
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Top setups
-                      </span>{" "}
-                      — {setupPerformance?.[0]?.setup ?? "trend/breakout"} and{" "}
-                      {setupPerformance?.[1]?.setup ?? "pullback"} show the best
-                      win rates in your history.
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Clear confluences
-                      </span>{" "}
-                      — trades with multiple confirmations (trend + volume +
-                      structure) are your most profitable.
-                    </li>
-                    <li>
-                      <span className="font-medium text-foreground">
-                        Short holding periods
-                      </span>{" "}
-                      — your quicker trades limit exposure and preserve capital
-                      when the edge is small.
-                    </li>
-                  </ul>
-
-                  <div className="rounded-lg bg-muted/20 p-3 text-sm text-foreground">
-                    <p className="font-semibold mb-2">
-                      Quick fixes (apply now)
+                  <div className="mb-5 space-y-4 text-sm leading-7 text-muted-foreground">
+                    <p className="text-base font-semibold text-foreground">
+                      How your trading edge is behaving
                     </p>
-                    <ul className="list-inside list-decimal text-muted-foreground space-y-1">
-                      <li>
-                        Always tag market condition and exit reason for every
-                        trade.
+                    <p>
+                      Based on your last {totalTrades} trade
+                      {totalTrades === 1 ? "" : "s"}, the strongest evidence is
+                      in your top setups:{" "}
+                      {topSetupWins || "your preferred setups"}. Your
+                      performance is strongest when you trade with clear market
+                      condition tags and a defined entry trigger.
+                    </p>
+                    <p>
+                      Your current record shows a {winRate}% win rate and a net
+                      ROI of ${totalPnL.toFixed(2)}. Trades held for a shorter
+                      duration tend to preserve gains, while the biggest losses
+                      appear on setups taken in unclear or choppy markets.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-border bg-muted/40 px-10 py-6">
+                      <p className="text-lg font-semibold text-foreground mb-6">
+                        What works well
+                      </p>
+                      <li className="text-sm mb-3">
+                        Top setups such as {topSetups || "breakout/pullback"}{" "}
+                        deliver your highest win rates.
                       </li>
-                      <li>
-                        Adopt a simple exit rule: hold winners to first target
-                        unless invalidated.
+                      <li className="text-sm mb-3">
+                        Trades with explicit entry and exit notes have better
+                        outcomes than those without.
                       </li>
-                      <li>
-                        Cap position size after 2 consecutive losses until you
-                        record 2 clean wins.
+                      <li className="text-sm mb-3">
+                        Holding winners for at least one clear swing keeps
+                        losses smaller and lets your edge play out.
                       </li>
-                    </ul>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-muted/40 px-10 py-6">
+                      <p className="text-lg font-semibold text-foreground mb-6">
+                        What needs attention
+                      </p>
+                      <li className="text-sm mb-3">
+                        Many losing trades come from choppy or low-volume
+                        conditions with weak confirmation.
+                      </li>
+                      <li className="text-sm mb-3">
+                        Emotional exits and inconsistent tagging reduce your
+                        ability to learn from the trade.
+                      </li>
+                      <li className="text-sm mb-3">
+                        Position sizing appears to drift after wins, increasing
+                        downside risk on later trades.
+                      </li>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-3xl border border-border bg-primary/5 p-5 text-sm text-foreground">
+                    <p className="font-semibold mb-3 text-lg">
+                      Evidence-based advice
+                    </p>
+                    <p className="mb-2">
+                      Your data suggests that the top 2 setups account for the
+                      majority of profitable trades. Focus on repeating those
+                      with clear market structure and volume support.
+                    </p>
+                    <p>
+                      Use consistent tags for market condition and exit reason
+                      so you can separate good signals from noise. This will
+                      make your next review more reliable.
+                    </p>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                <div className="rounded-3xl border border-border bg-background p-6 shadow-lg shadow-black/5 text-sm leading-7 text-muted-foreground whitespace-pre-line">
                   {aiInsights}
-                </p>
+                </div>
               )}
             </div>
           )}

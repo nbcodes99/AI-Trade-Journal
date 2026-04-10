@@ -22,14 +22,18 @@ import { useState } from "react";
 export default function Login() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) alert(error.message);
-    else {
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+    } else {
       alert("Logged in!");
       window.location.href = window.location.origin + "/dashboard";
     }
@@ -40,16 +44,18 @@ export default function Login() {
       alert("Please enter your email first");
       return;
     }
+    setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + "/login",
     });
     if (error) alert(error.message);
     else alert("Password reset email sent");
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription>Sign in to your account to continue</CardDescription>
@@ -95,8 +101,9 @@ export default function Login() {
             type="submit"
             className="w-full cursor-pointer"
             onClick={handleLogin}
+            disabled={loading}
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
 
           <div className="flex flex-col items-center w-full space-y-2">

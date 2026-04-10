@@ -20,7 +20,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import { format } from "date-fns";
+import { format, subWeeks, subMonths, subYears } from "date-fns";
 import {
   Table,
   TableBody,
@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState("1W");
 
   useEffect(() => {
     const fetchTrades = async () => {
@@ -82,18 +83,55 @@ export default function Dashboard() {
     fetchTrades();
   }, []);
 
-  const totalTrades = trades.length;
-  const wins = trades.filter((t) => t.result === "win").length;
-  const losses = trades.filter((t) => t.result === "loss").length;
+  const getFilteredTrades = () => {
+    if (timeframe === "All") return trades;
+    const now = new Date();
+    let startDate: Date;
+    switch (timeframe) {
+      case "1W":
+        startDate = subWeeks(now, 1);
+        break;
+      case "2W":
+        startDate = subWeeks(now, 2);
+        break;
+      case "1M":
+        startDate = subMonths(now, 1);
+        break;
+      case "1Y":
+        startDate = subYears(now, 1);
+        break;
+      default:
+        return trades;
+    }
+    return trades.filter((t) => {
+      const tradeDate = new Date(t.created_at || t.date);
+      return tradeDate >= startDate;
+    });
+  };
+
+  const filteredTrades = getFilteredTrades();
+
+  const totalTrades = filteredTrades.length;
+  const wins = filteredTrades.filter((t) => t.result === "win").length;
+  const losses = filteredTrades.filter((t) => t.result === "loss").length;
   const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
 
-  const totalPnL = trades.reduce((acc, t) => {
+  const totalPnL = filteredTrades.reduce((acc, t) => {
     const roi = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
     return acc + (isNaN(roi) ? 0 : roi);
   }, 0);
 
-  const equityData = trades.map((t, i) => {
-    const value = trades.slice(0, i + 1).reduce((acc, x) => {
+  const averageROI = totalTrades ? (totalPnL / totalTrades).toFixed(2) : "0.00";
+  const averageRoiNumber = parseFloat(averageROI);
+  const averageRoiTextColor =
+    averageRoiNumber >= 0 ? "text-primary" : "text-red-600 dark:text-red-300";
+  const averageRoiBg =
+    averageRoiNumber >= 0
+      ? "bg-emerald-100 dark:bg-emerald-900/20"
+      : "bg-red-100 dark:bg-red-900/20";
+
+  const equityData = filteredTrades.map((t, i) => {
+    const value = filteredTrades.slice(0, i + 1).reduce((acc, x) => {
       const r = typeof x.roi === "string" ? parseFloat(x.roi) : x.roi;
       return acc + (isNaN(r) ? 0 : r);
     }, 0);
@@ -111,7 +149,7 @@ export default function Dashboard() {
   ];
 
   const setupData = Object.values(
-    trades.reduce((acc: any, t) => {
+    filteredTrades.reduce((acc: any, t) => {
       const key = t.setup || "Unknown";
       if (!acc[key]) acc[key] = { setup: key, winRate: 0, count: 0, wins: 0 };
       acc[key].count++;
@@ -127,7 +165,20 @@ export default function Dashboard() {
   const snapshot = [
     { title: "Total Trades", value: totalTrades },
     { title: "Win Rate", value: `${winRate}%` },
-    { title: "Total P&L", value: `$${totalPnL.toFixed(2)}` },
+    {
+      title: "Total P&L",
+      value:
+        totalPnL >= 0
+          ? `+$${totalPnL.toFixed(2)}`
+          : `-$${Math.abs(totalPnL).toFixed(2)}`,
+    },
+    {
+      title: "Best Trade",
+      value:
+        filteredTrades.length > 0
+          ? `+${Math.max(...filteredTrades.map((t) => (typeof t.roi === "string" ? parseFloat(t.roi) : t.roi || 0))).toFixed(2)}%`
+          : "—",
+    },
   ];
 
   const recentTrades = trades.slice(-5).reverse();
@@ -150,9 +201,26 @@ export default function Dashboard() {
       </h1>
 
       <div className="min-h-screen text-white p-8 space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted/50 p-1 text-muted-foreground border border-border/50">
+            {["All", "1W", "2W", "1M", "1Y"].map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                  timeframe === tf
+                    ? "bg-background text-foreground shadow-sm"
+                    : "hover:bg-muted/80"
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading
-            ? ["a", "b", "c"].map((key) => (
+            ? ["a", "b", "c", "d"].map((key) => (
                 <Card key={key}>
                   <CardHeader>
                     <CardTitle>
@@ -164,21 +232,89 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               ))
-            : snapshot.map((item) => (
-                <Card key={item.title}>
-                  <CardHeader>
-                    <CardTitle>{item.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">{item.value}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            : snapshot.map((item) => {
+                let bgClass = "bg-card text-card-foreground";
+                if (item.title === "Win Rate") {
+                  const rate = parseFloat(
+                    (item.value as string).replace("%", ""),
+                  );
+                  if (rate > 70) {
+                    bgClass =
+                      "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200";
+                  } else if (rate >= 40) {
+                    bgClass =
+                      "bg-gray-100 dark:bg-gray-800/20 text-gray-800 dark:text-gray-200";
+                  } else {
+                    bgClass =
+                      "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200";
+                  }
+                } else if (item.title === "Total Trades") {
+                  bgClass =
+                    "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200";
+                } else if (item.title === "Total P&L") {
+                  if ((item.value as string).startsWith("+")) {
+                    bgClass =
+                      "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200";
+                  } else if ((item.value as string).startsWith("-")) {
+                    bgClass =
+                      "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200";
+                  } else {
+                    bgClass =
+                      "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
+                  }
+                } else if (item.title === "Best Trade") {
+                  bgClass =
+                    "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200";
+                }
+                return (
+                  <Card key={item.title} className={bgClass}>
+                    <CardHeader>
+                      <CardTitle>{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{item.value}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
         </div>
 
+        <div className="grid grid-cols-1 gap-6">
+          {loading ? (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>
+                  <Skeleton className="h-4 w-28" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-48 w-full" />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Equity Curve</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig}>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={equityData}>
+                      <CartesianGrid strokeDasharray="4 4" />
+                      <XAxis dataKey="trade" />
+                      <YAxis />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey="value" stroke="#4ade80" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {loading ? (
-            ["equity", "winloss", "setup"].map((key) => (
+            ["winloss", "setup", "average"].map((key) => (
               <Card key={key}>
                 <CardHeader>
                   <CardTitle>
@@ -192,29 +328,6 @@ export default function Dashboard() {
             ))
           ) : (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Equity Curve</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={equityData}>
-                        <CartesianGrid strokeDasharray="4 4" />
-                        <XAxis dataKey="trade" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="#4ade80"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Win/Loss Breakdown</CardTitle>
@@ -272,6 +385,34 @@ export default function Dashboard() {
                   </ChartContainer>
                 </CardContent>
               </Card>
+
+              <Card className={averageRoiBg}>
+                <CardHeader>
+                  <CardTitle>Average ROI per Trade</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-center h-48">
+                    <div className="text-center">
+                      <p
+                        className={`text-4xl font-bold ${averageRoiTextColor}`}
+                      >
+                        {averageROI}%
+                      </p>
+                      <p
+                        className={`text-sm mt-2 ${
+                          averageRoiNumber >= 0
+                            ? "text-primary"
+                            : "text-red-600 dark:text-red-300"
+                        }`}
+                      >
+                        {averageRoiNumber >= 0
+                          ? "Nice work! Your recent trades are trending positive."
+                          : "Warning!!! You are currently in a negative ROI zone."}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
@@ -309,11 +450,6 @@ export default function Dashboard() {
                     ))
                   : recentTrades.map((trade) => {
                       const isWin = trade.result === "win";
-                      const rowBg = isWin
-                        ? "bg-green-50 dark:bg-green-900/30"
-                        : trade.result === "loss"
-                          ? "bg-red-50 dark:bg-red-900/20"
-                          : "bg-white dark:bg-slate-900/40";
                       const roiValue =
                         trade.roi !== null && trade.roi !== undefined
                           ? typeof trade.roi === "number"
@@ -324,6 +460,11 @@ export default function Dashboard() {
                         roiValue !== null && !isNaN(roiValue)
                           ? `${roiValue.toFixed(2)}%`
                           : "";
+                      const resultColor = isWin
+                        ? "text-green-600 dark:text-green-300"
+                        : trade.result === "loss"
+                          ? "text-red-600 dark:text-red-300"
+                          : "text-muted-foreground";
                       const roiColor =
                         roiValue === null
                           ? "text-muted-foreground"
@@ -336,7 +477,7 @@ export default function Dashboard() {
                       return (
                         <TableRow
                           key={trade.id}
-                          className={`${rowBg} transition-transform`}
+                          className="hover:bg-muted/50 transition-colors"
                         >
                           <TableCell className="py-3">
                             {trade.created_at
@@ -379,18 +520,8 @@ export default function Dashboard() {
                               : (trade.confluence ?? "—")}
                           </TableCell>
 
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                isWin
-                                  ? "bg-primary text-accent-foreground"
-                                  : trade.result === "loss"
-                                    ? "bg-destructive text-destructive-foreground"
-                                    : "bg-secondary text-secondary-foreground"
-                              }`}
-                            >
-                              {trade.result ? trade.result.toUpperCase() : "—"}
-                            </span>
+                          <TableCell className={`font-semibold ${resultColor}`}>
+                            {trade.result ? trade.result.toUpperCase() : "—"}
                           </TableCell>
 
                           <TableCell

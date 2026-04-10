@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,12 +13,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { CiLocationArrow1 } from "react-icons/ci";
 
 export default function Trades() {
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 7;
   const pageCount = Math.max(1, Math.ceil(trades.length / pageSize));
   const paginatedTrades = trades.slice(
     (currentPage - 1) * pageSize,
@@ -64,7 +64,7 @@ export default function Trades() {
   return (
     <section className="flex flex-col items-center w-full max-w-6xl mx-auto px-2 mt-6">
       <div className="w-full flex flex-col gap-3 mb-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2 items-center md:items-start md:flex-row md:justify-between text-center md:text-left">
           <div>
             <h1 className="text-3xl font-bold">Trades Review</h1>
             <p className="max-w-3xl text-sm text-muted-foreground mt-2">
@@ -73,115 +73,123 @@ export default function Trades() {
               history.
             </p>
           </div>
-          <Button asChild>
-            <a href="/journal">Go to Journal</a>
+          <Button
+            className="flex items-center gap-2 cursor-pointer"
+            variant="ghost"
+          >
+            <CiLocationArrow1 />
+            <a href="/journal">Journal</a>
           </Button>
         </div>
       </div>
-
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>All Journaled Trades</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((item) => (
-                <Skeleton key={item} className="h-12 w-full rounded-md" />
-              ))}
-            </div>
-          ) : trades.length === 0 ? (
-            <div className="rounded-xl border border-border bg-muted p-6 text-muted-foreground">
-              <p className="mb-2 text-foreground font-medium">
-                No trades found yet.
-              </p>
-              <p>
-                Head to the{" "}
-                <a href="/journal" className="text-primary underline">
-                  Journal
-                </a>{" "}
-                page to log your first trade.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto rounded-3xl border border-border bg-card shadow-sm">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead>Date</TableHead>
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Result</TableHead>
-                      <TableHead>ROI</TableHead>
-                      <TableHead>Setup</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedTrades.map((trade) => (
-                      <TableRow
-                        key={
-                          trade.id ||
-                          `${trade.date}-${trade.asset}-${trade.entry}`
-                        }
-                        className="hover:bg-muted/20"
+      <div className="w-full">
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((item) => (
+              <Skeleton key={item} className="h-12 w-full rounded-md" />
+            ))}
+          </div>
+        ) : trades.length === 0 ? (
+          <div className="rounded-xl border border-border bg-muted p-6 text-muted-foreground">
+            <p className="mb-2 text-foreground font-medium">
+              No trades found yet.
+            </p>
+            <p>
+              Head to the{" "}
+              <a href="/journal" className="text-primary underline">
+                Journal
+              </a>{" "}
+              page to log your first trade.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto w-full rounded-3xl border border-border bg-background/80 p-2 shadow-sm">
+              <Table className="w-full font-medium">
+                <TableHeader>
+                  <TableRow className="bg-muted/30 text-sm text-muted-foreground">
+                    <TableHead className="py-4">Date</TableHead>
+                    <TableHead className="py-4">Asset</TableHead>
+                    <TableHead className="py-4">Type</TableHead>
+                    <TableHead className="py-4">Result</TableHead>
+                    <TableHead className="py-4">ROI</TableHead>
+                    <TableHead className="py-4">Setup</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTrades.map((trade) => (
+                    <TableRow
+                      key={
+                        trade.id ||
+                        `${trade.date}-${trade.asset}-${trade.entry}`
+                      }
+                      className="hover:bg-muted/20 transition-colors"
+                    >
+                      <TableCell className="py-4">
+                        {trade.date
+                          ? format(new Date(trade.date), "MMM d, yyyy")
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="py-4 font-medium">
+                        {trade.asset || "Unknown"}
+                      </TableCell>
+                      <TableCell
+                        className={`py-4 ${trade.trade_type === "short" ? "text-red-500" : "text-lime-400"}`}
                       >
-                        <TableCell>
-                          {trade.date
-                            ? format(new Date(trade.date), "MMM d, yyyy")
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {trade.asset || "Unknown"}
-                        </TableCell>
-                        <TableCell>{trade.trade_type || "—"}</TableCell>
-                        <TableCell>{trade.result || "—"}</TableCell>
-                        <TableCell>
-                          {typeof trade.roi === "number"
-                            ? `${trade.roi.toFixed(2)}%`
-                            : (trade.roi ?? "—")}
-                        </TableCell>
-                        <TableCell>{trade.setup || "—"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        {trade.trade_type || "—"}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {trade.result || "—"}
+                      </TableCell>
+                      <TableCell
+                        className={`py-4 ${typeof trade.roi === "number" && trade.roi > 0 ? "text-lime-400" : typeof trade.roi === "number" && trade.roi < 0 ? "text-red-500" : ""}`}
+                      >
+                        {typeof trade.roi === "number"
+                          ? `${trade.roi.toFixed(2)}%`
+                          : (trade.roi ?? "—")}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {trade.setup || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {paginatedTrades.length} of {trades.length} trades
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={() =>
-                      setCurrentPage((page) => Math.max(1, page - 1))
-                    }
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {pageCount}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === pageCount}
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(pageCount, page + 1))
-                    }
-                  >
-                    Next
-                  </Button>
-                </div>
+            <div className="mt-6 flex flex-col gap-3 items-center sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {paginatedTrades.length} of {trades.length} trades
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {pageCount}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === pageCount}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(pageCount, page + 1))
+                  }
+                >
+                  Next
+                </Button>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }
