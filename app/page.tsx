@@ -8,8 +8,8 @@ export default function Home() {
       <section className="mx-auto flex w-full flex-col gap-16 px-5 md:px-10">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-3 rounded-lg bg-primary/20 px-4 py-2 text-sm font-medium text-accent-foreground text-center">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <div className="inline-flex items-center gap-3 rounded-lg bg-primary/20 px-4 py-2 text-sm md:text-xs font-medium text-accent-foreground text-center">
+              <span className="h-2 w-2 rounded-full bg-primary hidden md:block" />
               Track your trading performance like a pro
             </div>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground text-center md:text-left">
@@ -207,29 +207,6 @@ export default function Home() {
           </div>
         </section>
       </section>
-
-      <footer className="border-t border-border bg-background py-14 mt-8">
-        <div className="mx-auto flex w-full max-w-7xl flex-col flex-wrap items-center justify-between gap-4 px-5 text-sm text-muted-foreground md:flex-row md:px-10">
-          <p className="font-medium mb-6">
-            © {new Date().getFullYear()}{" "}
-            <span className="text-primary">Glint</span>. All rights reserved.
-          </p>
-          <div className="flex flex-wrap items-center gap-4 font-normal">
-            <a href="/login" className="hover:text-foreground">
-              Login
-            </a>
-            <a href="/signup" className="hover:text-foreground">
-              Sign Up
-            </a>
-            <a href="#" className="hover:text-foreground">
-              Pricing
-            </a>
-            <a href="#" className="hover:text-foreground">
-              Features
-            </a>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

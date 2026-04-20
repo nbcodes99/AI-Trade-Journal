@@ -7,6 +7,7 @@ import { BottomNav } from "./BottomNav";
 import Header from "./Navbar";
 import { ThemeProvider } from "./theme-provider";
 import { useAuth } from "@/lib/session";
+import Footer from "./Footer";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -38,7 +39,8 @@ export default function AppShell({ children }: AppShellProps) {
         disableTransitionOnChange
       >
         <Header />
-        <main className="pt-20 min-h-screen bg-background p-4">{children}</main>
+        <main className="pt-20 min-h-screen bg-background">{children}</main>
+        <Footer />
       </ThemeProvider>
     );
   }

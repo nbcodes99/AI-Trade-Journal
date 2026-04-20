@@ -29,7 +29,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         { label: "Dashboard", href: "/dashboard", icon: Home },
         { label: "Journal", href: "/journal", icon: BookOpen },
         { label: "Trades", href: "/trades", icon: ListChecks },
-        { label: "Insights", href: "/insights", icon: BarChart3 },
+        { label: "Analytics", href: "/insights", icon: BarChart3 },
       ]
     : [
         { label: "Features", href: "/features", icon: Layers },
