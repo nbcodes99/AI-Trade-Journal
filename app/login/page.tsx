@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -78,12 +78,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-background">
+    <div className="min-h-screen flex items-center justify-center px-4 py-4 bg-background">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold mt-6">Glint</h1>
+        <div className="text-center space-y-1 flex flex-col items-center">
+          <h1 className="text-3xl font-bold mt-6 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Glint
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Welcome back. Sign in to your account.
+            Welcome back, sign in to your account.
           </p>
         </div>
 
@@ -172,7 +175,6 @@ export default function Login() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   className="h-11"
                 />
               </div>
@@ -199,14 +201,13 @@ export default function Login() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                   className="h-11"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-11 font-semibold"
+                className="w-full h-11 font-semibold cursor-pointer"
                 disabled={loading}
               >
                 {loading ? (

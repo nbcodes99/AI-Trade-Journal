@@ -40,7 +40,7 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 backdrop-blur-sm border-b py-10">
+    <header className="fixed inset-x-0 top-0 z-50 backdrop-blur-sm border-b py-6 md:py-8">
       <nav className="container mx-auto flex max-w-5xl justify-between items-center px-8">
         <Link href="/" className="flex items-center font-medium tracking-wide">
           {/* <Image

@@ -8,6 +8,8 @@ import Header from "./Navbar";
 import { ThemeProvider } from "./theme-provider";
 import { useAuth } from "@/lib/session";
 import Footer from "./Footer";
+import { PageTransition } from "./PageTransition";
+import { Toaster } from "@/components/ui/sonner";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -39,7 +41,10 @@ export default function AppShell({ children }: AppShellProps) {
         disableTransitionOnChange
       >
         <Header />
-        <main className="pt-20 min-h-screen bg-background">{children}</main>
+        <Toaster richColors position="top-center" />
+        <main className="pt-20 min-h-screen bg-background">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <Footer />
       </ThemeProvider>
     );
@@ -52,11 +57,12 @@ export default function AppShell({ children }: AppShellProps) {
       enableSystem
       disableTransitionOnChange
     >
+      <Toaster richColors position="top-center" />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64">
         <TopBar />
         <main className="flex-1 overflow-auto bg-background p-6 pb-20 md:pb-6">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
       <BottomNav />

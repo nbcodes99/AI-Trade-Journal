@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -77,20 +77,20 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-background">
+    <div className="min-h-screen flex items-center justify-center px-4 py-4 bg-background">
       <div className="w-full max-w-md space-y-6">
-        {/* Brand */}
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold mt-6">Glint</h1>
+        <div className="text-center space-y-1 flex flex-col items-center">
+          <h1 className="text-3xl font-bold mt-6 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Glint
+          </h1>
           <p className="text-muted-foreground text-sm">
             Create your account and start trading smarter.
           </p>
         </div>
 
-        {/* Card */}
         <Card className="rounded-2xl shadow-sm border border-border">
           <CardContent className="p-8 space-y-6">
-            {/* OAuth Buttons */}
             <div className="space-y-3">
               <Button
                 type="button"
@@ -146,7 +146,6 @@ export default function Signup() {
               </Button>
             </div>
 
-            {/* Divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground uppercase tracking-widest">
@@ -155,7 +154,6 @@ export default function Signup() {
               <div className="flex-1 h-px bg-border" />
             </div>
 
-            {/* Form */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -237,7 +235,7 @@ export default function Signup() {
 
               <Button
                 type="submit"
-                className="w-full h-11 font-semibold"
+                className="w-full h-11 font-semibold cursor-pointer"
                 disabled={loading}
               >
                 {loading ? (
@@ -251,7 +249,6 @@ export default function Signup() {
               </Button>
             </form>
 
-            {/* Login link */}
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link
@@ -264,7 +261,6 @@ export default function Signup() {
           </CardContent>
         </Card>
 
-        {/* Legal */}
         <p className="text-center text-xs text-muted-foreground">
           By continuing, you agree to our{" "}
           <Link
