@@ -42,7 +42,8 @@ const PLANS = [
     period: "/month",
     badge: null,
     description: "Billed monthly, cancel anytime",
-    amountKobo: 1199 * 100,
+    amountKobo: 19900 * 100, // ₦19,900 in kobo (adjust to your preferred NGN price)
+    displayPrice: "$11.99",
   },
   {
     id: "yearly",
@@ -51,7 +52,8 @@ const PLANS = [
     period: "/month",
     badge: "Save 33%",
     description: "Billed annually — $95.88/year",
-    amountKobo: 9588 * 100,
+    amountKobo: 149000 * 100, // ₦149,000 in kobo (adjust to your preferred NGN price)
+    displayPrice: "$95.88",
   },
 ];
 
@@ -77,13 +79,13 @@ export default function UpgradePage() {
 
     setLoading(true);
 
-    // @ts-ignore — Paystack inline JS
+    // @ts-expect-error — Paystack inline JS
     const handler = window.PaystackPop?.setup({
       key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
       email: userEmail,
       amount: plan.amountKobo,
-      currency: "USD",
-      ref: `glint_${selectedPlan}_${Date.now()}`,
+      currency: "NGN", // ← changed from USD to NGN
+      ref: `glint_${selectedPlan}_${Date.now().toString()}`,
       metadata: {
         custom_fields: [
           { display_name: "Name", variable_name: "name", value: userName },
@@ -95,7 +97,7 @@ export default function UpgradePage() {
           },
         ],
       },
-      callback: (response: any) => {
+      callback: (response: { status: string; reference: string }) => {
         setLoading(false);
         if (response.status === "success") {
           toast.success("Payment successful! Welcome to Pro 🎉");
