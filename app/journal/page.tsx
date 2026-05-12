@@ -268,6 +268,53 @@ export default function Journal() {
     set("newTag", "");
   };
 
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const screenshotRef = useRef<HTMLInputElement>(null);
+
+  const handleScreenshotUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB.");
+      return;
+    }
+
+    setUploadingScreenshot(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const ext = file.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("trade-screenshots")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("trade-screenshots")
+        .getPublicUrl(fileName);
+
+      set("screenshotUrl", data.publicUrl);
+      toast.success("Screenshot uploaded!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload screenshot.");
+    }
+    setUploadingScreenshot(false);
+  };
+
   const handleSetup = (val: string) => {
     if (val === "other") {
       setCustomSetupOpen(true);
@@ -411,7 +458,7 @@ export default function Journal() {
     <section className="min-h-screen bg-background">
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-5xl mx-auto">
-          <div>
+          <div className="text-center md:text-left">
             <h1 className="text-xl font-bold text-foreground text-center md:text-left">
               Trade Journal
             </h1>
@@ -784,7 +831,6 @@ export default function Journal() {
 
             <Separator />
 
-            {/* Section 3 — Strategy */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
@@ -834,7 +880,6 @@ export default function Journal() {
                   </Select>
                 </div>
 
-                {/* Confidence */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Pre-Trade Confidence{" "}
@@ -859,7 +904,6 @@ export default function Journal() {
                   </div>
                 </div>
 
-                {/* Post-trade rating */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Post-Trade Execution Rating{" "}
@@ -881,7 +925,6 @@ export default function Journal() {
                 </div>
               </div>
 
-              {/* Confluence Tags */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Confluence Factors
@@ -933,7 +976,6 @@ export default function Journal() {
 
             <Separator />
 
-            {/* Section 4 — Notes */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
@@ -957,19 +999,75 @@ export default function Journal() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Chart Screenshot URL
+                    Chart Screenshot
                   </label>
-                  <Input
-                    placeholder="https://..."
-                    className="h-10"
-                    value={form.screenshotUrl}
-                    onChange={(e) => set("screenshotUrl", e.target.value)}
+                  <input
+                    ref={screenshotRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleScreenshotUpload}
                   />
+
+                  {form.screenshotUrl ? (
+                    <div className="relative rounded-xl border border-border overflow-hidden group">
+                      <img
+                        src={form.screenshotUrl}
+                        alt="Trade screenshot"
+                        className="w-full max-h-48 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => screenshotRef.current?.click()}
+                          className="flex items-center gap-1.5 rounded-lg bg-white/20 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/30 transition-colors"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          Change
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => set("screenshotUrl", "")}
+                          className="flex items-center gap-1.5 rounded-lg bg-destructive/80 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-white hover:bg-destructive transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => screenshotRef.current?.click()}
+                      disabled={uploadingScreenshot}
+                      className="w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+                    >
+                      {uploadingScreenshot ? (
+                        <>
+                          <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <span className="text-xs font-medium">
+                            Uploading...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6" />
+                          <div className="text-center">
+                            <p className="text-xs font-semibold">
+                              Click to upload screenshot
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              PNG, JPG, WEBP up to 5MB
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Submit */}
             <Button
               className="w-full h-12 font-bold text-base gap-2"
               onClick={handleSubmit}
@@ -990,7 +1088,6 @@ export default function Journal() {
         </Card>
       </div>
 
-      {/* Custom Setup Dialog */}
       <Dialog open={customSetupOpen} onOpenChange={setCustomSetupOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1015,7 +1112,6 @@ export default function Journal() {
         </DialogContent>
       </Dialog>
 
-      {/* CSV Import Dialog */}
       <Dialog open={csvImportOpen} onOpenChange={setCsvImportOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>

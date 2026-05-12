@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +25,15 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { Spinner } from "@radix-ui/themes";
+
+declare global {
+  interface Window {
+    PaystackPop: {
+      setup: (options: Record<string, unknown>) => { openIframe: () => void };
+    };
+  }
+}
 
 const PRO_FEATURES = [
   { icon: Infinity, label: "Unlimited trade logging" },
@@ -42,7 +53,7 @@ const PLANS = [
     period: "/month",
     badge: null,
     description: "Billed monthly, cancel anytime",
-    amountKobo: 19900 * 100, // ₦19,900 in kobo (adjust to your preferred NGN price)
+    amountKobo: 19900 * 100,
     displayPrice: "$11.99",
   },
   {
@@ -52,15 +63,18 @@ const PLANS = [
     period: "/month",
     badge: "Save 33%",
     description: "Billed annually — $95.88/year",
-    amountKobo: 149000 * 100, // ₦149,000 in kobo (adjust to your preferred NGN price)
+    amountKobo: 149000 * 100,
     displayPrice: "$95.88",
   },
 ];
 
 export default function UpgradePage() {
-  const { session } = useAuth();
+  const { session, isLoading } = useAuth();
+  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState("yearly");
   const [loading, setLoading] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [checkingPro, setCheckingPro] = useState(true);
 
   const userEmail = session?.user?.email || "";
   const userName =
@@ -69,9 +83,95 @@ export default function UpgradePage() {
     userEmail.split("@")[0] ||
     "Trader";
 
+  useEffect(() => {
+    if (!session) {
+      setIsPro(false);
+      setCheckingPro(false);
+      return;
+    }
+
+    const checkProStatus = async () => {
+      setCheckingPro(true);
+
+      if (
+        session.user.user_metadata?.plan === "pro" ||
+        session.user.app_metadata?.plan === "pro"
+      ) {
+        setIsPro(true);
+        setCheckingPro(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+
+      setIsPro(!error && data?.plan === "pro");
+      setCheckingPro(false);
+    };
+
+    checkProStatus();
+  }, [session]);
+
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
 
-  const handlePaystack = () => {
+  if (isPro) {
+    return (
+      <section className="min-h-screen bg-background">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
+          <Card className="border-border shadow-sm">
+            <CardContent className="p-6 text-center">
+              <div className="text-2xl font-extrabold text-foreground mb-2">
+                You're already subscribed!
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Thanks for being a Pro member. Head back to your dashboard to
+                manage your account.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
+  }
+
+  if (isLoading || checkingPro) {
+    return (
+      <section className="min-h-screen bg-background">
+        <div className="w-full mx-auto text-center flex items-center justify-center py-20">
+          <Spinner size="3" />
+        </div>
+      </section>
+    );
+  }
+
+  const loadPaystackScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) {
+        resolve();
+        return;
+      }
+
+      const existing = document.getElementById("paystack-script");
+      if (existing) {
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", () => reject());
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "paystack-script";
+      script.src = "https://js.paystack.co/v1/inline.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Paystack"));
+      document.head.appendChild(script);
+    });
+  };
+
+  const handlePaystack = async () => {
     if (!userEmail) {
       toast.error("Please sign in to continue.");
       return;
@@ -79,12 +179,21 @@ export default function UpgradePage() {
 
     setLoading(true);
 
-    // @ts-expect-error — Paystack inline JS
-    const handler = window.PaystackPop?.setup({
+    try {
+      await loadPaystackScript();
+    } catch {
+      toast.error(
+        "Failed to load payment system. Check your internet connection.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    const handler = (window as any).PaystackPop.setup({
       key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
       email: userEmail,
       amount: plan.amountKobo,
-      currency: "NGN", // ← changed from USD to NGN
+      currency: "NGN",
       ref: `glint_${selectedPlan}_${Date.now().toString()}`,
       metadata: {
         custom_fields: [
@@ -100,8 +209,31 @@ export default function UpgradePage() {
       callback: (response: { status: string; reference: string }) => {
         setLoading(false);
         if (response.status === "success") {
-          toast.success("Payment successful! Welcome to Pro 🎉");
-          window.location.href = "/dashboard?upgraded=true";
+          toast.loading("Verifying payment...", { id: "verify" });
+
+          fetch("/api/paystack/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference: response.reference }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                toast.success("Payment successful! Welcome to Pro 🎉", {
+                  id: "verify",
+                });
+                window.location.href = "/dashboard?upgraded=true";
+              } else {
+                toast.error("Payment verification failed. Contact support.", {
+                  id: "verify",
+                });
+              }
+            })
+            .catch(() => {
+              toast.error("Verification error. Contact support.", {
+                id: "verify",
+              });
+            });
         } else {
           toast.error("Payment was not completed.");
         }
@@ -112,23 +244,18 @@ export default function UpgradePage() {
       },
     });
 
-    handler?.openIframe();
+    handler.openIframe();
   };
 
   return (
     <>
-      <script src="https://js.paystack.co/v1/inline.js" async />
-
       <section className="min-h-screen bg-background">
         <div className="border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-6 py-4">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <Link
-              href="/pricing"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <Button onClick={() => router.back()} variant="ghost">
               <ArrowLeft className="h-4 w-4" />
               Back
-            </Link>
+            </Button>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary hidden md:block" />
               <span className="font-bold text-foreground hidden md:block">
@@ -327,7 +454,7 @@ export default function UpgradePage() {
                   </div>
 
                   <Button
-                    className="w-full h-12 font-bold text-base gap-2"
+                    className="w-full h-12 font-bold text-base gap-2 cursor-pointer"
                     onClick={handlePaystack}
                     disabled={loading || !session}
                   >

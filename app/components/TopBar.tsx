@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Search,
-  User,
   Settings,
   LogOut,
   TrendingUp,
@@ -74,10 +73,12 @@ export function TopBar() {
     trades: number;
     winRate: string;
   } | null>(null);
+  const [subscriptionTier, setSubscriptionTier] = useState<"pro" | "free">(
+    "free",
+  );
   const debounceRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch live stats
   useEffect(() => {
     if (!userId) return;
     const fetchStats = async () => {
@@ -93,7 +94,20 @@ export function TopBar() {
     fetchStats();
   }, [userId]);
 
-  // Cmd+K shortcut
+  useEffect(() => {
+    if (!userId) return;
+    const fetchSubscriptionTier = async () => {
+      try {
+        const tier = session?.user?.user_metadata?.subscription_tier || "free";
+        setSubscriptionTier(tier === "pro" ? "pro" : "free");
+      } catch (error) {
+        console.error("Error fetching subscription tier:", error);
+        setSubscriptionTier("free");
+      }
+    };
+    fetchSubscriptionTier();
+  }, [userId, session]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -110,7 +124,6 @@ export function TopBar() {
     if (searchOpen) setTimeout(() => inputRef.current?.focus(), 50);
   }, [searchOpen]);
 
-  // Search debounce
   useEffect(() => {
     if (!q || !userId) {
       setResults([]);
@@ -161,8 +174,8 @@ export function TopBar() {
               </span>
             </Link>
 
-            <div className="hidden md:flex items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2">
                 <TrendingUp className="h-3.5 w-3.5 text-primary" />
                 <span className="text-muted-foreground/90 text-sm">/</span>
                 <span className="text-sm font-semibold text-foreground">
@@ -173,7 +186,7 @@ export function TopBar() {
               <div className="h-4 w-px bg-border" />
 
               {quickStats && (
-                <div className="flex items-center gap-2">
+                <div className="items-center gap-2 hidden lg:flex">
                   <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Trades
@@ -255,7 +268,7 @@ export function TopBar() {
                       variant="default"
                       className="text-[10px] py-0 h-5 shrink-0"
                     >
-                      Pro
+                      {subscriptionTier === "pro" ? "Pro" : "Free"}
                     </Badge>
                   </div>
                 </div>

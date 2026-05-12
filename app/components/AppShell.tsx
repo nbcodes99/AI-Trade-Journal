@@ -59,7 +59,7 @@ export default function AppShell({ children }: AppShellProps) {
     >
       <Toaster richColors position="top-center" />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-64">
+      <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-56">
         <TopBar />
         <main className="flex-1 overflow-auto bg-background p-6 pb-20 md:pb-6">
           <PageTransition>{children}</PageTransition>

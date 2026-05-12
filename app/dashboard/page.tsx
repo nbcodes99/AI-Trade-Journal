@@ -376,39 +376,49 @@ export default function Dashboard() {
             />
           </div>
 
-          <Card className="w-full hidden md:block">
-            <CardHeader className="flex flex-row items-center justify-between pb-0">
-              <div>
-                <CardTitle className="text-base font-bold">
-                  Equity Curve
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Cumulative P&L across {totalTrades} trades
+          <Card className="w-full hidden md:block overflow-hidden border-border">
+            {/* Header */}
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-5 px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 border border-primary/20">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Equity Curve
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Cumulative P&L across {totalTrades} trades
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p
+                  className={`text-2xl font-extrabold ${pnlPositive ? "text-primary" : "text-destructive"}`}
+                >
+                  {pnlPositive ? "+" : "-"}${Math.abs(totalPnL).toFixed(2)}
+                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mt-0.5">
+                  Net P&L
                 </p>
               </div>
-              <Badge
-                variant={pnlPositive ? "default" : "destructive"}
-                className="text-xs"
-              >
-                {pnlPositive
-                  ? `+$${totalPnL.toFixed(2)}`
-                  : `-$${Math.abs(totalPnL).toFixed(2)}`}
-              </Badge>
             </CardHeader>
-            <CardContent className="px-0 pb-0 pt-4">
+
+            {/* Chart */}
+            <CardContent className="px-0 pb-0 pt-2">
               {loading ? (
-                <Skeleton className="h-[120px] w-full" />
+                <Skeleton className="h-[130px] w-full" />
               ) : equityData.length === 0 ? (
-                <div className="h-[120px] flex items-center justify-center text-muted-foreground text-sm">
+                <div className="h-[130px] flex items-center justify-center text-muted-foreground text-sm">
                   No trade data yet. Log your first trade to see your equity
                   curve.
                 </div>
               ) : (
                 <ChartContainer config={chartConfig}>
-                  <ResponsiveContainer width="100%" height={120}>
+                  <ResponsiveContainer width="100%" height={130}>
                     <AreaChart
                       data={equityData}
-                      margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                      margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
                     >
                       <defs>
                         <linearGradient
@@ -421,7 +431,7 @@ export default function Dashboard() {
                           <stop
                             offset="5%"
                             stopColor="hsl(var(--primary))"
-                            stopOpacity={0.25}
+                            stopOpacity={0.3}
                           />
                           <stop
                             offset="95%"
@@ -439,7 +449,7 @@ export default function Dashboard() {
                           <stop
                             offset="5%"
                             stopColor="hsl(var(--primary))"
-                            stopOpacity={0.08}
+                            stopOpacity={0.1}
                           />
                           <stop
                             offset="95%"
@@ -452,7 +462,7 @@ export default function Dashboard() {
                         horizontal={true}
                         vertical={false}
                         stroke="hsl(var(--border))"
-                        strokeOpacity={0.3}
+                        strokeOpacity={0.25}
                         strokeDasharray="0"
                       />
                       <XAxis
@@ -488,7 +498,7 @@ export default function Dashboard() {
                         type="monotoneX"
                         dataKey="value"
                         stroke="hsl(var(--primary))"
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         fill="url(#equityGradient)"
                         dot={false}
                         activeDot={{
@@ -501,6 +511,47 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </ChartContainer>
               )}
+
+              {/* Stats row */}
+              {/* <div className="grid grid-cols-4 border-t border-border/60 divide-x divide-border/60">
+                {[
+                  {
+                    label: "Profit Factor",
+                    value: loading ? "—" : String(profitFactor),
+                    color:
+                      parseFloat(profitFactor as string) >= 1.5
+                        ? "text-primary"
+                        : "text-amber-500",
+                  },
+                  {
+                    label: "Avg Winner",
+                    value: loading ? "—" : `+${avgWin.toFixed(2)}%`,
+                    color: "text-primary",
+                  },
+                  {
+                    label: "Avg Loser",
+                    value: loading ? "—" : `-${avgLoss.toFixed(2)}%`,
+                    color: "text-destructive",
+                  },
+                  {
+                    label: "Win Rate",
+                    value: loading ? "—" : `${winRate.toFixed(1)}%`,
+                    color: winRate >= 50 ? "text-primary" : "text-destructive",
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="flex flex-col items-center justify-center py-4 gap-1"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {s.label}
+                    </p>
+                    <p className={`text-base font-extrabold ${s.color}`}>
+                      {s.value}
+                    </p>
+                  </div>
+                ))} */}
+              {/* </div> */}
             </CardContent>
           </Card>
 

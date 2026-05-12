@@ -160,16 +160,18 @@ export default function Trades() {
 
   return (
     <section className="min-h-screen bg-background">
-      {/* Page Header */}
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-7xl mx-auto">
-          <div>
+          <div className="text-center md:text-left">
             <h1 className="text-xl font-bold text-foreground">Trade Journal</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {trades.length} trades logged · {winRate}% win rate
             </p>
           </div>
-          <Link href="/journal">
+          <Link
+            href="/journal"
+            className="flex items-center justify-center mt-4"
+          >
             <Button size="sm" className="gap-2 font-semibold">
               <BookOpen className="h-4 w-4" />
               Log New Trade
@@ -179,13 +181,12 @@ export default function Trades() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             {
               label: "Total Trades",
               value: loading ? null : trades.length,
-              sub: "all time",
+              sub: "All time",
               color: "text-foreground",
             },
             {
@@ -233,7 +234,6 @@ export default function Trades() {
           ))}
         </div>
 
-        {/* Filters Bar */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
@@ -318,7 +318,6 @@ export default function Trades() {
           )}
         </div>
 
-        {/* Table */}
         {loading ? (
           <div className="space-y-2">
             {Array.from({ length: 7 }).map((_, i) => (
@@ -486,7 +485,6 @@ export default function Trades() {
               </Table>
             </div>
 
-            {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
               <p className="text-sm text-muted-foreground">
                 Showing{" "}

@@ -9,6 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -44,6 +51,10 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [checkingPro, setCheckingPro] = useState(true);
+  const [unsubscribeModalOpen, setUnsubscribeModalOpen] = useState(false);
+  const [unsubscribing, setUnsubscribing] = useState(false);
   const [stats, setStats] = useState<{
     total: number;
     wins: number;
@@ -72,7 +83,11 @@ export default function ProfilePage() {
     const load = async () => {
       setLoadingProfile(true);
       const [profileRes, tradesRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", userId).single(),
+        supabase
+          .from("profiles")
+          .select("full_name, plan")
+          .eq("id", userId)
+          .single(),
         supabase.from("trades").select("result, roi").eq("user_id", userId),
       ]);
 
@@ -82,8 +97,10 @@ export default function ProfilePage() {
             session?.user?.user_metadata?.full_name ||
             "",
         );
+        setIsPro(profileRes.data?.plan === "pro");
       } else {
         setFullName(session?.user?.user_metadata?.full_name || "");
+        setIsPro(false);
       }
 
       if (tradesRes.data) {
@@ -98,9 +115,10 @@ export default function ProfilePage() {
       }
 
       setLoadingProfile(false);
+      setCheckingPro(false);
     };
     load();
-  }, [userId]);
+  }, [userId, session]);
 
   if (!session) {
     return (
@@ -184,6 +202,26 @@ export default function ProfilePage() {
     window.location.href = "/";
   };
 
+  const handleUnsubscribe = async () => {
+    if (!userId) return;
+    setUnsubscribing(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ plan: null })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      setIsPro(false);
+      setUnsubscribeModalOpen(false);
+      toast.success("You've been unsubscribed. Thanks for being a member!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to unsubscribe.");
+    }
+    setUnsubscribing(false);
+  };
+
   const winRate =
     stats && stats.total > 0
       ? ((stats.wins / stats.total) * 100).toFixed(1)
@@ -191,21 +229,20 @@ export default function ProfilePage() {
 
   return (
     <section className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-4xl mx-auto md:flex md:items-center md:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-bold text-foreground text-center md:text-left">
               Account Settings
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 text-center md:text-left">
               Manage your profile and preferences
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 hidden md:flex md:items-center"
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
@@ -215,12 +252,10 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* Profile Hero Card */}
         <Card className="border-border overflow-hidden">
           <div className="h-20 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
           <CardContent className="px-6 pb-6 -mt-10">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-              {/* Avatar */}
               <div className="relative">
                 <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/20 border-4 border-background text-primary text-2xl font-extrabold shadow-lg">
                   {loadingProfile ? (
@@ -243,9 +278,14 @@ export default function ProfilePage() {
                       <h2 className="text-xl font-extrabold text-foreground">
                         {fullName || userEmail.split("@")[0]}
                       </h2>
-                      <Badge variant="default" className="text-[10px] h-5 py-0">
-                        Pro
-                      </Badge>
+                      {isPro && (
+                        <Badge
+                          variant="default"
+                          className="text-[10px] h-5 py-0"
+                        >
+                          Pro
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">{userEmail}</p>
                     {createdAt && (
@@ -258,7 +298,6 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Trading stats strip */}
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 {
@@ -316,7 +355,6 @@ export default function ProfilePage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Personal Info */}
           <Card className="border-border">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
@@ -385,7 +423,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Change Password */}
           <Card className="border-border">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
@@ -518,7 +555,6 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* Danger Zone */}
         <Card className="border-destructive/30">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
@@ -536,6 +572,27 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
+            {isPro && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Cancel Pro Subscription
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Unsubscribe from your Pro plan anytime. You'll lose access
+                    to advanced features.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-500/40 text-amber-600 hover:bg-amber-500 hover:text-foreground gap-2 shrink-0"
+                  onClick={() => setUnsubscribeModalOpen(true)}
+                >
+                  Unsubscribe
+                </Button>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5">
               <div>
                 <p className="text-sm font-semibold text-foreground">
@@ -561,6 +618,65 @@ export default function ProfilePage() {
               </Button>
             </div>
           </CardContent>
+
+          <Dialog
+            open={unsubscribeModalOpen}
+            onOpenChange={setUnsubscribeModalOpen}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cancel Pro Subscription?</DialogTitle>
+                <DialogDescription>
+                  We're sad to see you go! You'll lose access to all Pro
+                  features including AI Coach, unlimited trades, and advanced
+                  analytics.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col space-y-4">
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    You'll lose access to:
+                  </p>
+                  <div className="text-xs flex flex-col text-muted-foreground space-y-1.5">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-1">•</span>
+                      <span>AI Coach weekly reports & behavioral analysis</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-1">•</span>
+                      <span>Risk Manager with advanced position sizing</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-1">•</span>
+                      <span>Unlimited trade logging</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-1">•</span>
+                      <span>Full analytics dashboard & reports</span>
+                    </li>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setUnsubscribeModalOpen(false)}
+                    disabled={unsubscribing}
+                  >
+                    Keep Pro
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={handleUnsubscribe}
+                    disabled={unsubscribing}
+                  >
+                    {unsubscribing ? "Unsubscribing..." : "Yes, Unsubscribe"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
       </div>
     </section>

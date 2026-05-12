@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/session";
 import classnames from "classnames";
@@ -20,7 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   open: boolean;
@@ -44,6 +45,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     .toUpperCase()
     .slice(0, 2);
   const userEmail = session?.user?.email || "";
+  const [isPro, setIsPro] = useState(false);
+  const [checkingPro, setCheckingPro] = useState(true);
 
   const authedLinks = [
     {
@@ -96,6 +99,38 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const links = session ? authedLinks : publicLinks;
 
+  useEffect(() => {
+    if (!session) {
+      setIsPro(false);
+      setCheckingPro(false);
+      return;
+    }
+
+    const checkPlan = async () => {
+      setCheckingPro(true);
+
+      if (
+        session.user.user_metadata?.plan === "pro" ||
+        session.user.app_metadata?.plan === "pro"
+      ) {
+        setIsPro(true);
+        setCheckingPro(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+
+      setIsPro(!error && data?.plan === "pro");
+      setCheckingPro(false);
+    };
+
+    checkPlan();
+  }, [session]);
+
   return (
     <>
       {open && (
@@ -116,7 +151,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           },
         )}
       >
-        <div className="px-5 pt-6 pb-4 border-b border-border/40">
+        <div className="px-5 pt-[35px] pb-4 border-b border-border/40">
           <Link
             href="/"
             onClick={onClose}
@@ -135,9 +170,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+          {/* <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
             {session ? "Navigation" : "Menu"}
-          </p>
+          </p> */}
           <nav className="flex flex-col gap-0.5">
             {links.map((link) => {
               const isActive = pathname === link.href;
@@ -188,26 +223,50 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             })}
           </nav>
 
-          {session && (
+          {session && !checkingPro && (
             <div className="mt-6">
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-3.5 w-3.5 text-primary" />
-                  <p className="text-xs font-bold text-foreground">
-                    Unlock Pro
+              {isPro ? (
+                <div className="rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-1 justify-center">
+                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                    <p className="text-xs font-bold text-foreground text-center">
+                      You're Pro
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Thanks for being a Pro member. Enjoy AI coaching, unlimited
+                    trades, and advanced analytics.
                   </p>
+                  <Button variant="outline">
+                    <Link
+                      href="/dashboard"
+                      onClick={onClose}
+                      className="flex items-center justify-center w-full h-7 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Go to Dashboard →
+                    </Link>
+                  </Button>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Get AI coaching, unlimited trades & advanced analytics.
-                </p>
-                <Link
-                  href="/checkout"
-                  onClick={onClose}
-                  className="flex items-center justify-center w-full h-7 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
-                >
-                  Upgrade →
-                </Link>
-              </div>
+              ) : (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs font-bold text-foreground">
+                      Unlock Pro
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Get AI coaching, unlimited trades & advanced analytics.
+                  </p>
+                  <Link
+                    href="/checkout"
+                    onClick={onClose}
+                    className="flex items-center justify-center w-full h-7 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
+                  >
+                    Upgrade →
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>

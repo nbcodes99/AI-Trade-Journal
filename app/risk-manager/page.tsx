@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import Link from "next/link";
 import { format, startOfDay, startOfWeek } from "date-fns";
 import {
   Shield,
@@ -30,8 +31,10 @@ import {
   ChevronRight,
   Activity,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import Footer from "../components/Footer";
+import { Spinner } from "@radix-ui/themes";
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface RiskRules {
@@ -170,6 +173,117 @@ const RuleProgress = ({
   );
 };
 
+const LockedState = () => {
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="border-b border-border bg-background/80 backdrop-blur-sm px-6 py-4 mb-40 md:mb-24">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-xl font-bold text-foreground text-center">
+            Risk Manager
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5 text-center">
+            Advanced risk protection & position sizing
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center px-4 py-16">
+        <div className="max-w-2xl w-full space-y-8">
+          <div className="relative">
+            <div className="space-y-4 blur-sm pointer-events-none select-none opacity-60">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <h3 className="text-sm font-bold">Risk Rules</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-2 bg-muted rounded w-full" />
+                    <div className="h-2 bg-muted rounded w-5/6" />
+                    <div className="h-2 bg-muted rounded w-4/6" />
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-card p-4"
+                  >
+                    <div className="h-2 bg-muted rounded w-2/3 mb-3" />
+                    <div className="h-6 bg-muted rounded mb-2" />
+                    <div className="h-2 bg-muted rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center mb-48 md:mb-36">
+              <div className="bg-background/95 backdrop-blur-sm border border-border rounded-3xl p-8 shadow-2xl text-center max-w-sm mx-auto">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 border border-primary/20 mx-auto mb-4">
+                  <Lock className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-xl font-extrabold text-foreground mb-2">
+                  Pro Feature Unlocked
+                </h2>
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  The Risk Manager helps you set guardrails, track daily/weekly
+                  limits, and manage position sizing with precision — so you
+                  trade with discipline, not emotion.
+                </p>
+                <Link href="/checkout" className="w-full">
+                  <Button className="w-full gap-2 font-bold h-11">
+                    <Sparkles className="h-4 w-4" />
+                    Upgrade to Pro
+                  </Button>
+                </Link>
+                <p className="text-xs text-muted-foreground mt-3">
+                  14-day money back guarantee · Cancel anytime
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            {[
+              {
+                icon: Shield,
+                title: "Risk Rules",
+                desc: "Define your daily loss limits, max trades, and position sizing rules.",
+              },
+              {
+                icon: BarChart2,
+                title: "Live Monitoring",
+                desc: "Track your daily P&L, weekly drawdown, and trade count in real-time.",
+              },
+              {
+                icon: Calculator,
+                title: "Position Calculator",
+                desc: "Calculate exact position sizes based on your risk per trade.",
+              },
+            ].map((f, i) => (
+              <div
+                key={f.title}
+                className="rounded-2xl border border-border bg-card p-4 text-center"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 mx-auto mb-3">
+                  <f.icon className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-sm font-bold text-foreground mb-1">
+                  {f.title}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function RiskManager() {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
@@ -183,11 +297,45 @@ export default function RiskManager() {
   const [checklist, setChecklist] =
     useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
   const [newCheckItem, setNewCheckItem] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [checkingPro, setCheckingPro] = useState(true);
 
   const [calcEntry, setCalcEntry] = useState("");
   const [calcStop, setCalcStop] = useState("");
   const [calcRiskPct, setCalcRiskPct] = useState("");
   const [calcBalance, setCalcBalance] = useState("");
+
+  useEffect(() => {
+    if (!session) {
+      setIsPro(false);
+      setCheckingPro(false);
+      return;
+    }
+
+    const checkPlan = async () => {
+      setCheckingPro(true);
+
+      if (
+        session.user.user_metadata?.plan === "pro" ||
+        session.user.app_metadata?.plan === "pro"
+      ) {
+        setIsPro(true);
+        setCheckingPro(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+
+      setIsPro(!error && data?.plan === "pro");
+      setCheckingPro(false);
+    };
+
+    checkPlan();
+  }, [session]);
 
   useEffect(() => {
     if (!userId) return;
@@ -341,6 +489,18 @@ export default function RiskManager() {
     setRules((r) => ({ ...r, [key]: val }));
 
   const rulesChanged = JSON.stringify(rules) !== JSON.stringify(savedRules);
+
+  if (checkingPro || loadingRules) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="3" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isPro) return <LockedState />;
 
   return (
     <>
@@ -985,7 +1145,6 @@ export default function RiskManager() {
           </Card>
         </div>
       </section>
-      {/* <Footer /> */}
     </>
   );
 }
