@@ -891,8 +891,8 @@ Remember to follow the exact section format from your instructions. Be specific 
 
   if (checkingPro || loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-full mx-auto flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center">
+        <div className="text-center mt-44">
           <Spinner size="3" />
         </div>
       </div>

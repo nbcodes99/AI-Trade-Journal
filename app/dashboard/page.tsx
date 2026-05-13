@@ -38,13 +38,16 @@ import {
   Activity,
   Target,
   Zap,
+  Lock,
   BarChart2,
   Award,
   AlertTriangle,
   Clock,
   DollarSign,
+  ArrowRight,
 } from "lucide-react";
-import Footer from "../components/Footer";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const chartConfig = {
   value: { label: "Value" },
@@ -128,6 +131,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState("All");
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     const fetchTrades = async () => {
@@ -147,6 +151,13 @@ export default function Dashboard() {
         user.user_metadata?.given_name ||
         null;
       setUserName(nameFromMeta);
+
+      const profileRes = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", user.id)
+        .single();
+      setIsPro(profileRes.data?.plan === "pro");
 
       const { data, error } = await supabase
         .from("trades")
@@ -198,9 +209,9 @@ export default function Dashboard() {
   const averageROI = totalTrades ? (totalPnL / totalTrades).toFixed(2) : "0.00";
   const allRois = filteredTrades.map(getRoi);
   const bestTrade = allRois.length ? Math.max(...allRois) : 0;
-  const worstTrade = allRois.length ? Math.min(...allRois) : 0;
-  const profitFactor =
-    losses > 0 ? (wins / losses).toFixed(2) : wins > 0 ? "∞" : "0";
+  // const worstTrade = allRois.length ? Math.min(...allRois) : 0;
+  // const profitFactor =
+  //   losses > 0 ? (wins / losses).toFixed(2) : wins > 0 ? "∞" : "0";
 
   let currentStreak = 0,
     bestStreak = 0,
@@ -301,8 +312,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="px-6 py-6 space-y-6">
           <div className="grid lg:grid-cols-4 gap-4 grid-cols-1">
+            <StatCard
+              title="Total Trades"
+              value={totalTrades}
+              subtitle="in selected period"
+              icon={Activity}
+              trend="neutral"
+              loading={loading}
+            />
+            <StatCard
+              title="Win Rate"
+              value={`${winRate}%`}
+              subtitle={`${wins}W / ${losses}L`}
+              icon={Target}
+              trend={winRateNum >= 50 ? "up" : "down"}
+              loading={loading}
+            />
             <StatCard
               title="Total P&L"
               value={
@@ -316,41 +343,6 @@ export default function Dashboard() {
               loading={loading}
             />
             <StatCard
-              title="Win Rate"
-              value={`${winRate}%`}
-              subtitle={`${wins}W / ${losses}L`}
-              icon={Target}
-              trend={winRateNum >= 50 ? "up" : "down"}
-              loading={loading}
-            />
-            <StatCard
-              title="Total Trades"
-              value={totalTrades}
-              subtitle={`in selected period`}
-              icon={Activity}
-              trend="neutral"
-              loading={loading}
-            />
-            <StatCard
-              title="Profit Factor"
-              value={profitFactor}
-              subtitle="Wins to losses ratio"
-              icon={BarChart2}
-              trend={parseFloat(profitFactor as string) >= 1 ? "up" : "down"}
-              loading={loading}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Avg ROI / Trade"
-              value={`${averageROI}%`}
-              subtitle="Per trade average"
-              icon={TrendingUp}
-              trend={parseFloat(averageROI) >= 0 ? "up" : "down"}
-              loading={loading}
-            />
-            <StatCard
               title="Best Trade"
               value={`+${bestTrade.toFixed(2)}%`}
               subtitle="Highest single return"
@@ -358,26 +350,173 @@ export default function Dashboard() {
               trend="up"
               loading={loading}
             />
-            <StatCard
-              title="Worst Trade"
-              value={`${worstTrade.toFixed(2)}%`}
-              subtitle="Largest single loss"
-              icon={AlertTriangle}
-              trend="down"
-              loading={loading}
-            />
-            <StatCard
-              title="Best Streak"
-              value={`${bestStreak}W`}
-              subtitle={`Current: ${currentStreak}W`}
-              icon={Zap}
-              trend="neutral"
-              loading={loading}
-            />
           </div>
 
+          {isPro ? (
+            <div className="grid lg:grid-cols-4 gap-4 grid-cols-1">
+              <StatCard
+                title="Expectancy"
+                value={
+                  loading
+                    ? "—"
+                    : (() => {
+                        const avgWin =
+                          wins > 0
+                            ? filteredTrades
+                                .filter((t) => t.result === "win")
+                                .reduce((a, t) => a + getRoi(t), 0) / wins
+                            : 0;
+                        const avgLoss =
+                          losses > 0
+                            ? Math.abs(
+                                filteredTrades
+                                  .filter((t) => t.result === "loss")
+                                  .reduce((a, t) => a + getRoi(t), 0) / losses,
+                              )
+                            : 0;
+                        const winPct = totalTrades ? wins / totalTrades : 0;
+                        const lossPct = totalTrades ? losses / totalTrades : 0;
+                        const expectancy = winPct * avgWin - lossPct * avgLoss;
+                        return `${expectancy >= 0 ? "+" : ""}${expectancy.toFixed(2)}%`;
+                      })()
+                }
+                subtitle="Avg edge per trade"
+                icon={TrendingUp}
+                trend={(() => {
+                  const avgWin =
+                    wins > 0
+                      ? filteredTrades
+                          .filter((t) => t.result === "win")
+                          .reduce((a, t) => a + getRoi(t), 0) / wins
+                      : 0;
+                  const avgLoss =
+                    losses > 0
+                      ? Math.abs(
+                          filteredTrades
+                            .filter((t) => t.result === "loss")
+                            .reduce((a, t) => a + getRoi(t), 0) / losses,
+                        )
+                      : 0;
+                  const winPct = totalTrades ? wins / totalTrades : 0;
+                  const lossPct = totalTrades ? losses / totalTrades : 0;
+                  const expectancy = winPct * avgWin - lossPct * avgLoss;
+                  return expectancy >= 0 ? "up" : "down";
+                })()}
+                loading={loading}
+              />
+              <StatCard
+                title="Max Drawdown"
+                value={
+                  loading
+                    ? "—"
+                    : (() => {
+                        let peak = 0,
+                          equity = 0,
+                          maxDD = 0;
+                        filteredTrades.forEach((t) => {
+                          equity += getRoi(t);
+                          peak = Math.max(peak, equity);
+                          const dd =
+                            peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+                          maxDD = Math.max(maxDD, dd);
+                        });
+                        return `-${maxDD.toFixed(2)}%`;
+                      })()
+                }
+                subtitle="Deepest peak-to-trough"
+                icon={AlertTriangle}
+                trend="down"
+                loading={loading}
+              />
+              <StatCard
+                title="Avg R:R Ratio"
+                value={
+                  loading
+                    ? "—"
+                    : (() => {
+                        const avgWin =
+                          wins > 0
+                            ? filteredTrades
+                                .filter((t) => t.result === "win")
+                                .reduce((a, t) => a + getRoi(t), 0) / wins
+                            : 0;
+                        const avgLoss =
+                          losses > 0
+                            ? Math.abs(
+                                filteredTrades
+                                  .filter((t) => t.result === "loss")
+                                  .reduce((a, t) => a + getRoi(t), 0) / losses,
+                              )
+                            : 0;
+                        return avgLoss > 0
+                          ? `${(avgWin / avgLoss).toFixed(2)}R`
+                          : "—";
+                      })()
+                }
+                subtitle="Avg winner vs avg loser"
+                icon={BarChart2}
+                trend={(() => {
+                  const avgWin =
+                    wins > 0
+                      ? filteredTrades
+                          .filter((t) => t.result === "win")
+                          .reduce((a, t) => a + getRoi(t), 0) / wins
+                      : 0;
+                  const avgLoss =
+                    losses > 0
+                      ? Math.abs(
+                          filteredTrades
+                            .filter((t) => t.result === "loss")
+                            .reduce((a, t) => a + getRoi(t), 0) / losses,
+                        )
+                      : 0;
+                  return avgLoss > 0 && avgWin / avgLoss >= 1.5 ? "up" : "down";
+                })()}
+                loading={loading}
+              />
+              <StatCard
+                title="Recovery Factor"
+                value={
+                  loading
+                    ? "—"
+                    : (() => {
+                        let peak = 0,
+                          equity = 0,
+                          maxDD = 0;
+                        filteredTrades.forEach((t) => {
+                          equity += getRoi(t);
+                          peak = Math.max(peak, equity);
+                          const dd =
+                            peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+                          maxDD = Math.max(maxDD, dd);
+                        });
+                        const rf =
+                          maxDD > 0 ? (totalPnL / maxDD).toFixed(2) : "∞";
+                        return String(rf);
+                      })()
+                }
+                subtitle="Net P&L ÷ max drawdown"
+                icon={Zap}
+                trend={(() => {
+                  let peak = 0,
+                    equity = 0,
+                    maxDD = 0;
+                  filteredTrades.forEach((t) => {
+                    equity += getRoi(t);
+                    peak = Math.max(peak, equity);
+                    const dd = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+                    maxDD = Math.max(maxDD, dd);
+                  });
+                  return maxDD > 0 && totalPnL / maxDD >= 1 ? "up" : "down";
+                })()}
+                loading={loading}
+              />
+            </div>
+          ) : (
+            ""
+          )}
+
           <Card className="w-full hidden md:block overflow-hidden border-border">
-            {/* Header */}
             <CardHeader className="flex flex-row items-center justify-between pb-3 pt-5 px-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 border border-primary/20">
@@ -404,7 +543,6 @@ export default function Dashboard() {
               </div>
             </CardHeader>
 
-            {/* Chart */}
             <CardContent className="px-0 pb-0 pt-2">
               {loading ? (
                 <Skeleton className="h-[130px] w-full" />

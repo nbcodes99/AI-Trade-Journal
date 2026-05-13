@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/session";
 import Footer from "./Footer";
 import { PageTransition } from "./PageTransition";
 import { Toaster } from "@/components/ui/sonner";
+import { useRiskMonitor } from "@/lib/useRiskMonitor";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   const { session, isLoading } = useAuth();
+  useRiskMonitor(session?.user?.id ?? null);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   if (isLoading) {
