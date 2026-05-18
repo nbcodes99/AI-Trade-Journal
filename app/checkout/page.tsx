@@ -224,6 +224,7 @@ export default function UpgradePage() {
                 });
                 window.location.href = "/dashboard";
               } else {
+                console.log("Verification failed:", data);
                 toast.error("Payment verification failed. Contact support.", {
                   id: "verify",
                 });

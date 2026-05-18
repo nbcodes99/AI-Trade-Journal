@@ -23,9 +23,31 @@ export async function POST(req: Request) {
     const data = await res.json();
     console.log("Paystack verify response:", data);
 
-    if (!data.data || data.data.status !== "success") {
+    if (!data.status || !data.data) {
+      return Response.json(
+        {
+          success: false,
+          error: data.message || "Paystack verification failed",
+        },
+        { status: 400 },
+      );
+    }
+
+    console.log("STATUS:", res.status);
+    console.log("RAW RESPONSE:", data);
+    if (!data.status || data.data.status !== "success") {
       return Response.json(
         { success: false, error: "Payment not successful" },
+        { status: 400 },
+      );
+    }
+
+    if (!res.ok || !data.status || !data.data) {
+      return Response.json(
+        {
+          success: false,
+          error: data.message || "Verification failed",
+        },
         { status: 400 },
       );
     }
