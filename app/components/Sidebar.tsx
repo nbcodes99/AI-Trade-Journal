@@ -151,7 +151,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           },
         )}
       >
-        <div className="px-5 pt-[35px] pb-4 border-b border-border/40">
+        <div className="px-5 pt-8.75 pb-4 border-b border-border/40">
           <Link
             href="/"
             onClick={onClose}
@@ -226,27 +226,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           {session && !checkingPro && (
             <div className="mt-6">
               {isPro ? (
-                <div className="rounded-xl p-4 space-y-2">
-                  <div className="flex items-center gap-1 justify-center">
-                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
-                    <p className="text-xs font-bold text-foreground text-center">
-                      You're Pro
-                    </p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Thanks for being a Pro member. Enjoy AI coaching, unlimited
-                    trades, and advanced analytics.
-                  </p>
-                  <Button variant="outline">
-                    <Link
-                      href="/dashboard"
-                      onClick={onClose}
-                      className="flex items-center justify-center w-full h-7 rounded-lg text-xs font-bold transition-colors"
-                    >
-                      Go to Dashboard →
-                    </Link>
-                  </Button>
-                </div>
+                ""
               ) : (
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
                   <div className="flex items-center gap-2">

@@ -222,7 +222,7 @@ export default function UpgradePage() {
                 toast.success("Payment successful! Welcome to Pro 🎉", {
                   id: "verify",
                 });
-                window.location.href = "/dashboard?upgraded=true";
+                window.location.href = "/dashboard";
               } else {
                 toast.error("Payment verification failed. Contact support.", {
                   id: "verify",

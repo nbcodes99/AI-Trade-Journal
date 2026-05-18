@@ -155,6 +155,7 @@ export default function ProfilePage() {
       toast.error(e.message || "Failed to save profile.");
     }
     setSavingProfile(false);
+    await supabase.auth.refreshSession();
   };
 
   const handleChangePassword = async () => {
@@ -593,6 +594,29 @@ export default function ProfilePage() {
                 </Button>
               </div>
             )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5 mb-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Delete My Data
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Permanently remove all trades you have logged. This action
+                  cannot be undone.
+                </p>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-destructive/40 text-destructive hover:bg-destructive hover:text-foreground gap-2 shrink-0"
+                // onClick={() => setDeleteTradesModalOpen(true)}
+                // disabled={deletingTrades || trades.length === 0}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete My Data
+              </Button>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5">
               <div>
                 <p className="text-sm font-semibold text-foreground">

@@ -169,7 +169,7 @@ const LockedState = () => (
             </motion.div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-14">
           {[
             {
               icon: Shield,
@@ -346,7 +346,6 @@ export default function RiskManager() {
       (1 - Math.min(todayCount / (savedRules.max_trades_per_day || 1), 1)) * 25,
   );
 
-  // Calculator
   const calcResults = useMemo(() => {
     const entry = parseFloat(calcEntry);
     const stop = parseFloat(calcStop);
@@ -435,18 +434,18 @@ export default function RiskManager() {
   return (
     <section className="min-h-screen bg-background">
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15">
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:items-center sm:gap-3 w-full">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 shrink-0">
               <Shield className="h-4 w-4 text-primary" />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-foreground">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
+                <h1 className="text-xl font-bold text-foreground truncate">
                   Risk Manager
                 </h1>
                 <div
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                  className={`inline-flex items-center gap-1.5 mb-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
                     overallStatus === "safe"
                       ? "border-primary/20 bg-primary/10 text-primary"
                       : overallStatus === "warning"
@@ -462,19 +461,19 @@ export default function RiskManager() {
                       : "Stop Trading"}
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 Protect capital · Trade with discipline
               </p>
             </div>
           </div>
           <Button
             size="sm"
-            className="gap-2 font-semibold self-start sm:self-auto"
+            className="w-full sm:w-auto gap-2 font-semibold"
             onClick={handleSaveRules}
             disabled={savingRules || !rulesChanged}
           >
             {savingRules ? (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 justify-center w-full">
                 <span className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 Saving...
               </span>
@@ -658,18 +657,18 @@ export default function RiskManager() {
 
         <div className="flex gap-1 p-1 rounded-xl bg-muted/40 border border-border w-full sm:w-auto">
           {[
-            { id: "rules", label: "Risk Rules", icon: Shield },
+            { id: "rules", label: "Rules", icon: Shield },
             { id: "calculator", label: "Calculator", icon: Calculator },
             {
               id: "checklist",
-              label: "Pre-Trade Checklist",
+              label: "Checklist",
               icon: CheckCircle2,
             },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === tab.id
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1018,7 +1017,6 @@ export default function RiskManager() {
                   </CardContent>
                 </Card>
 
-                {/* Results */}
                 <Card
                   className={`border ${calcResults ? (calcResults.meetsMinRR === false ? "border-amber-500/30 bg-amber-500/5" : "border-primary/20 bg-primary/5") : "border-border"}`}
                 >
@@ -1151,7 +1149,6 @@ export default function RiskManager() {
                         </button>
                       </div>
 
-                      {/* Progress */}
                       <div className="mt-3 space-y-1.5">
                         <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
                           <motion.div
@@ -1256,7 +1253,6 @@ export default function RiskManager() {
                   </Card>
                 </div>
 
-                {/* Checklist tips */}
                 <div className="space-y-4">
                   <Card className="border-border">
                     <CardHeader className="pb-3">
@@ -1269,11 +1265,11 @@ export default function RiskManager() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {[
-                        "Is my R:R at least 1.5:1?",
-                        "Have I NOT hit my daily loss limit?",
+                        // "Is my R:R at least 1:2?",
+                        // "Have I NOT hit my daily loss limit?",
                         "Is my emotional state calm?",
                         "Does the setup match my strategy?",
-                        "Is there no major news event?",
+                        // "Is there no major news event?",
                         "Am I trading in my best session?",
                         "Is the market condition clear?",
                         "Have I checked higher timeframe bias?",

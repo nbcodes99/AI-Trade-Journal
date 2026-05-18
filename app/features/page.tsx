@@ -70,12 +70,12 @@ const features = [
     tag: "Integrations",
     title: "Plug In and Go",
     description:
-      "Connect directly to your broker or import trade history with a single click. Spend less time entering data and more time analyzing it.",
+      "Import trades with a single click. Spend less time entering data and more time analyzing it.",
     bullets: [
-      "CSV & broker import (TD, IBKR, Webull)",
+      "CSV import",
       "Webhook-based auto-logging",
-      "TradingView chart links",
-      "Export to Excel or PDF",
+      "Chart snapshot uploads",
+      "Export PDF",
     ],
     accent: "from-muted/60 to-muted/20",
     border: "border-border",

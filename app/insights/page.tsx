@@ -23,6 +23,7 @@ import {
   BookOpen,
   Star,
   Download,
+  RotateCw,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -417,6 +418,21 @@ export default function Insights() {
 
     generateAiInsights();
   }, [trades, loading, isPro]);
+
+  const regenerateInsights = () => {
+    // if (lastGeneratedAt) {
+    //   const hoursSince =
+    //     (Date.now() - new Date(lastGeneratedAt).getTime()) / (1000 * 60 * 60);
+    //   if (hoursSince < 1) {
+    //     const minutesLeft = Math.ceil((1 - hoursSince) * 60);
+    //     toast.error(
+    //       `Cooldown... Try again in ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""}.`,
+    //     );
+    //     return;
+    //   }
+    // }
+    generateAiInsights(true);
+  };
 
   const getRoi = (t: any) => {
     const r = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
@@ -916,20 +932,31 @@ Remember to follow the exact section format from your instructions. Be specific 
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">AI Coach</h1>
-              <p className="text-xs mt-0.5 text-muted-foreground">
+              <p className="text-xs mt-0.5 text-muted-foreground hidden md:block">
                 Your favorite coach
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={downloadReport}
-            disabled={!aiSections || aiLoading}
-          >
-            <Download className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex gap-3 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={regenerateInsights}
+              disabled={!aiSections || aiLoading}
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={downloadReport}
+              disabled={!aiSections || aiLoading}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 

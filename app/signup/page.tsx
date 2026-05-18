@@ -47,8 +47,9 @@ export default function Signup() {
       toast.error(error.message);
       setLoading(false);
     } else {
-      toast.success("Account created! Check your email to confirm.");
+      toast.success("Account created!");
       setLoading(false);
+      window.location.href = window.location.origin + "/dashboard";
     }
   };
 

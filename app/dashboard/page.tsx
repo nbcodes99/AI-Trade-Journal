@@ -7,8 +7,6 @@ import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  LineChart,
-  Line,
   PieChart,
   Pie,
   BarChart,
@@ -38,16 +36,12 @@ import {
   Activity,
   Target,
   Zap,
-  Lock,
   BarChart2,
   Award,
   AlertTriangle,
-  Clock,
   DollarSign,
-  ArrowRight,
 } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/session";
 
 const chartConfig = {
   value: { label: "Value" },
@@ -133,43 +127,59 @@ export default function Dashboard() {
   const [timeframe, setTimeframe] = useState("All");
   const [isPro, setIsPro] = useState(false);
 
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+  const userN =
+    session?.user?.user_metadata?.full_name ||
+    session?.user?.user_metadata?.name ||
+    session?.user?.user_metadata?.given_name ||
+    null;
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .single();
+      setUserName(
+        data?.full_name || session?.user?.user_metadata?.full_name || null,
+      );
+    };
+    fetchProfile();
+  }, [userId]);
+
   useEffect(() => {
     const fetchTrades = async () => {
-      setLoading(true);
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) {
+      if (!userId) {
         setLoading(false);
         return;
       }
 
-      const nameFromMeta =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.user_metadata?.given_name ||
-        null;
+      setLoading(true);
+
+      const nameFromMeta = userName || null;
       setUserName(nameFromMeta);
 
       const profileRes = await supabase
         .from("profiles")
         .select("plan")
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
       setIsPro(profileRes.data?.plan === "pro");
 
       const { data, error } = await supabase
         .from("trades")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: true });
 
       setTrades(error ? [] : data || []);
       setLoading(false);
     };
     fetchTrades();
-  }, []);
+  }, [userId]);
 
   const getFilteredTrades = () => {
     if (timeframe === "All") return trades;
@@ -263,6 +273,19 @@ export default function Dashboard() {
   const recentTrades = trades.slice(-5).reverse();
   const pnlPositive = totalPnL >= 0;
   const winRateNum = parseFloat(winRate);
+
+  const EquityTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="rounded-xl border border-border bg-background/95 backdrop-blur-sm px-3 py-2 shadow-lg text-xs">
+        <p className="text-muted-foreground mb-1">{label}</p>
+        <p className="font-bold text-primary">
+          {payload[0].value >= 0 ? "+" : ""}
+          {payload[0].value?.toFixed(2)}%
+        </p>
+      </div>
+    );
+  };
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -545,52 +568,52 @@ export default function Dashboard() {
 
             <CardContent className="px-0 pb-0 pt-2">
               {loading ? (
-                <Skeleton className="h-[130px] w-full" />
+                <Skeleton className="h-[100px] w-full" />
               ) : equityData.length === 0 ? (
-                <div className="h-[130px] flex items-center justify-center text-muted-foreground text-sm">
+                <div className="h-[100px] flex items-center justify-center text-muted-foreground text-sm">
                   No trade data yet. Log your first trade to see your equity
                   curve.
                 </div>
               ) : (
-                <ChartContainer config={chartConfig}>
-                  <ResponsiveContainer width="100%" height={130}>
+                <div className="w-full" style={{ height: 250 }}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <AreaChart
                       data={equityData}
                       margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
                     >
                       <defs>
                         <linearGradient
-                          id="equityGradient"
+                          id="eqGrad1"
                           x1="0"
                           y1="0"
                           x2="0"
                           y2="1"
                         >
                           <stop
-                            offset="5%"
+                            offset="0%"
                             stopColor="hsl(var(--primary))"
-                            stopOpacity={0.3}
+                            stopOpacity={0.55}
                           />
                           <stop
-                            offset="95%"
+                            offset="100%"
                             stopColor="hsl(var(--primary))"
-                            stopOpacity={0.02}
+                            stopOpacity={0.04}
                           />
                         </linearGradient>
                         <linearGradient
-                          id="equityGradient2"
+                          id="eqGrad2"
                           x1="0"
                           y1="0"
                           x2="0"
                           y2="1"
                         >
                           <stop
-                            offset="5%"
+                            offset="0%"
                             stopColor="hsl(var(--primary))"
-                            stopOpacity={0.1}
+                            stopOpacity={0.2}
                           />
                           <stop
-                            offset="95%"
+                            offset="100%"
                             stopColor="hsl(var(--primary))"
                             stopOpacity={0}
                           />
@@ -600,8 +623,7 @@ export default function Dashboard() {
                         horizontal={true}
                         vertical={false}
                         stroke="hsl(var(--border))"
-                        strokeOpacity={0.25}
-                        strokeDasharray="0"
+                        strokeOpacity={0.2}
                       />
                       <XAxis
                         dataKey="label"
@@ -611,12 +633,12 @@ export default function Dashboard() {
                         }}
                         axisLine={false}
                         tickLine={false}
-                        tickMargin={8}
+                        tickMargin={6}
                         interval="preserveStartEnd"
                       />
-                      <YAxis hide />
+                      <YAxis />
                       <Tooltip
-                        content={<ChartTooltipContent />}
+                        content={<EquityTooltip />}
                         cursor={{
                           stroke: "hsl(var(--primary))",
                           strokeWidth: 1,
@@ -624,72 +646,28 @@ export default function Dashboard() {
                         }}
                       />
                       <Area
-                        type="monotoneX"
+                        type="monotone"
                         dataKey="value"
-                        stroke="transparent"
-                        strokeWidth={0}
-                        fill="url(#equityGradient2)"
-                        dot={false}
-                        activeDot={false}
+                        stroke="none"
+                        fill="oklch(45.3% 0.124 130.933)"
                       />
                       <Area
-                        type="monotoneX"
+                        type="monotone"
                         dataKey="value"
                         stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        fill="url(#equityGradient)"
+                        strokeWidth={1.8}
+                        fill="url(#eqGrad2)"
                         dot={false}
                         activeDot={{
-                          r: 4,
+                          r: 3,
                           fill: "hsl(var(--primary))",
                           strokeWidth: 0,
                         }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
-                </ChartContainer>
+                </div>
               )}
-
-              {/* Stats row */}
-              {/* <div className="grid grid-cols-4 border-t border-border/60 divide-x divide-border/60">
-                {[
-                  {
-                    label: "Profit Factor",
-                    value: loading ? "—" : String(profitFactor),
-                    color:
-                      parseFloat(profitFactor as string) >= 1.5
-                        ? "text-primary"
-                        : "text-amber-500",
-                  },
-                  {
-                    label: "Avg Winner",
-                    value: loading ? "—" : `+${avgWin.toFixed(2)}%`,
-                    color: "text-primary",
-                  },
-                  {
-                    label: "Avg Loser",
-                    value: loading ? "—" : `-${avgLoss.toFixed(2)}%`,
-                    color: "text-destructive",
-                  },
-                  {
-                    label: "Win Rate",
-                    value: loading ? "—" : `${winRate.toFixed(1)}%`,
-                    color: winRate >= 50 ? "text-primary" : "text-destructive",
-                  },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="flex flex-col items-center justify-center py-4 gap-1"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      {s.label}
-                    </p>
-                    <p className={`text-base font-extrabold ${s.color}`}>
-                      {s.value}
-                    </p>
-                  </div>
-                ))} */}
-              {/* </div> */}
             </CardContent>
           </Card>
 
@@ -974,7 +952,6 @@ export default function Dashboard() {
           </Card>
         </div>
       </section>
-      {/* <Footer /> */}
     </>
   );
 }

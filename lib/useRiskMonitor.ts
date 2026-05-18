@@ -127,6 +127,38 @@ export function useRiskMonitor(userId: string | null) {
 
     check();
     const interval = setInterval(check, 3 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    const channel = supabase
+      .channel(`risk-monitor-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "trades",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          check();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "trades",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          check();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      channel.unsubscribe();
+    };
   }, [userId]);
 }

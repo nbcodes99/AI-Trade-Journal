@@ -380,7 +380,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background overflow-x-hidden">
       <section className="relative min-h-screen flex flex-col items-center justify-center px-5 md:px-10 pt-20 pb-16 overflow-hidden">
-        {/* <FloatingIcons count={22} /> */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-primary/8 blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-[400px] w-[500px] rounded-full bg-primary/5 blur-[100px]" />
@@ -406,11 +405,11 @@ export default function Home() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-foreground max-w-4xl"
+              className="text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-foreground max-w-5xl"
             >
               Turn Every Trade Into{" "}
-              <span className="relative inline-block">
-                <span className="text-primary">Data</span>
+              <span className="relative inline-block mb-2">
+                <span className="text-primary">Data. </span>
                 <motion.span
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
@@ -418,7 +417,7 @@ export default function Home() {
                   className="absolute -bottom-1 left-0 right-0 h-1 bg-primary/40 rounded-full origin-left"
                 />
               </span>
-              {". "}
+              <br />
               Build Your <span className="text-primary">Edge</span>.
             </motion.h1>
 
@@ -867,7 +866,6 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* ── PRICING ───────────────────────────────────────────────── */}
       <AnimatedSection className="py-20 px-5 md:px-10 border-t border-border/40 bg-muted/20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
@@ -912,14 +910,16 @@ export default function Home() {
                 badge: "Most Popular",
                 features: [
                   "Unlimited trades",
-                  "Full analytics + AI Coach",
-                  "Risk Manager",
-                  "Broker integrations",
+                  "Advanced analytics dashboard",
+                  "AI Coach - behavioral analysis & weekly report",
+                  "Risk Manager - daily/weekly limit tracking & live alerts",
+                  "Custom pre-trade checklist",
+                  "PDF download of AI coaching report",
                   "Priority support",
-                  "CSV & PDF export",
+                  "CSV import",
                 ],
                 cta: "Go Pro",
-                href: "/signup?plan=pro",
+                href: "/signup?checkout",
                 highlight: true,
               },
             ].map((plan, i) => (
@@ -948,11 +948,11 @@ export default function Home() {
                     {plan.period}
                   </span>
                 </div>
-                <ul className="mt-6 space-y-2.5 mb-8">
+                <ul className="mt-6 space-y-2.5 mb-8 flex flex-col">
                   {plan.features.map((f) => (
                     <li
                       key={f}
-                      className="flex items-center gap-2.5 text-sm text-muted-foreground"
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
                     >
                       <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                       {f}
@@ -961,7 +961,7 @@ export default function Home() {
                 </ul>
                 <Link href={plan.href}>
                   <Button
-                    className="w-full font-semibold h-11"
+                    className="w-full font-semibold h-11 my-3"
                     variant={plan.highlight ? "default" : "outline"}
                   >
                     {plan.cta}

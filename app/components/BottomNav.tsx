@@ -13,7 +13,7 @@ import {
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/journal", icon: BookOpen, label: "Journal" },
-  { href: "/trades", icon: TrendingUp, label: "Trades" },
+  // { href: "/trades", icon: TrendingUp, label: "Trades" },
   { href: "/insights", icon: Lightbulb, label: "Insights" },
   { href: "/risk-manager", icon: Shield, label: "Risk" },
 ];

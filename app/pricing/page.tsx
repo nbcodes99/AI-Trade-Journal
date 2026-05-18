@@ -36,7 +36,7 @@ const plans = [
       { text: "Advanced insights & alerts", included: false },
       { text: "AI Coach feedback", included: false },
       { text: "Risk Manager", included: false },
-      { text: "Broker integrations", included: false },
+      // { text: "Broker integrations", included: false },
     ],
   },
   {
@@ -52,13 +52,12 @@ const plans = [
     features: [
       { text: "Unlimited trades", included: true },
       { text: "Full analytics dashboard", included: true },
-      { text: "Manual + auto trade logging", included: true },
+      { text: "Pre-trade checklist", included: true },
       { text: "Priority support", included: true },
-      { text: "CSV & broker import", included: true },
+      { text: "CSV import", included: true },
       { text: "Advanced insights & alerts", included: true },
       { text: "AI Coach feedback", included: true },
       { text: "Risk Manager", included: true },
-      { text: "Broker integrations (IBKR, TD, Webull)", included: true },
     ],
   },
 ];
@@ -72,10 +71,10 @@ const faqs = [
     q: "Is my trading data secure?",
     a: "Absolutely. All data is encrypted at rest and in transit. We never sell your information, and you can export or delete it at any time.",
   },
-  {
-    q: "What brokers are supported for auto-import?",
-    a: "Glint currently supports Interactive Brokers, TD Ameritrade, Webull, and generic CSV imports. More brokers are added regularly.",
-  },
+  // {
+  //   q: "What brokers are supported for auto-import?",
+  //   a: "Glint currently supports Interactive Brokers, TD Ameritrade, Webull, and generic CSV imports. More brokers are added regularly.",
+  // },
   {
     q: "Does the Free plan have a time limit?",
     a: "No. The Free plan is free forever. You only upgrade when you're ready to unlock advanced features and unlimited logging.",
@@ -94,12 +93,12 @@ const comparison = [
   { feature: "Trades per month", free: "100", pro: "Unlimited" },
   { feature: "Analytics", free: "Basic", pro: "Advanced" },
   { feature: "AI Coach", free: "—", pro: "✓" },
-  { feature: "Custom Dashboards", free: "—", pro: "✓" },
+  { feature: "Advanced Dashboard", free: "—", pro: "✓" },
   { feature: "Risk Manager", free: "—", pro: "✓" },
-  { feature: "Broker Integrations", free: "—", pro: "✓" },
+  // { feature: "Broker Integrations", free: "—", pro: "✓" },
   { feature: "Alerts & Notifications", free: "—", pro: "✓" },
+  { feature: "Export Coaching Reports", free: "—", pro: "✓" },
   { feature: "Support", free: "Community", pro: "Priority" },
-  { feature: "Data Export", free: "CSV", pro: "CSV + PDF" },
 ];
 
 export default function PricingPage() {

@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
 
@@ -98,15 +98,19 @@ export function TopBar() {
     if (!userId) return;
     const fetchSubscriptionTier = async () => {
       try {
-        const tier = session?.user?.user_metadata?.subscription_tier || "free";
-        setSubscriptionTier(tier === "pro" ? "pro" : "free");
+        const { data } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("id", userId)
+          .single();
+        setSubscriptionTier(data?.plan === "pro" ? "pro" : "free");
       } catch (error) {
         console.error("Error fetching subscription tier:", error);
         setSubscriptionTier("free");
       }
     };
     fetchSubscriptionTier();
-  }, [userId, session]);
+  }, [userId]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -294,6 +298,17 @@ export function TopBar() {
                     >
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
                       <span>Log a Trade</span>
+                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/trades"
+                      className="flex items-center gap-2 cursor-pointer md:hidden"
+                    >
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <span>View Trades</span>
+                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden">
@@ -325,7 +340,7 @@ export function TopBar() {
       </header>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden rounded-2xl border border-border shadow-2xl">
+        <DialogContent className="p-0 gap-0 max-w-md overflow-hidden rounded-2xl border border-border shadow-2xl">
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input
