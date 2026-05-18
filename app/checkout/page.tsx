@@ -194,51 +194,43 @@ export default function UpgradePage() {
       email: userEmail,
       amount: plan.amountKobo,
       currency: "NGN",
-      ref: `glint_${selectedPlan}_${Date.now().toString()}`,
+
+      // 🔥 IMPORTANT: embed userId in reference
+      ref: `glint_${session?.user?.id}_${selectedPlan}_${Date.now()}`,
+
       metadata: {
         custom_fields: [
-          { display_name: "Name", variable_name: "name", value: userName },
-          { display_name: "Plan", variable_name: "plan", value: selectedPlan },
           {
-            display_name: "User ID",
-            variable_name: "user_id",
-            value: session?.user?.id,
+            display_name: "Plan",
+            variable_name: "plan",
+            value: selectedPlan,
           },
         ],
       },
+
       callback: (response: { status: string; reference: string }) => {
         setLoading(false);
-        if (response.status === "success") {
-          toast.loading("Verifying payment...", { id: "verify" });
 
-          fetch("/api/paystack/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reference: response.reference }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                toast.success("Payment successful! Welcome to Pro 🎉", {
-                  id: "verify",
-                });
-                window.location.href = "/dashboard";
-              } else {
-                console.log("Verification failed:", data);
-                toast.error("Payment verification failed. Contact support.", {
-                  id: "verify",
-                });
-              }
-            })
-            .catch(() => {
-              toast.error("Verification error. Contact support.", {
-                id: "verify",
-              });
-            });
-        } else {
-          toast.error("Payment was not completed.");
-        }
+        fetch("/api/paystack/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reference: response.reference,
+            userId: session?.user?.id,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              toast.success("Upgraded to Pro 🎉");
+              router.push("/dashboard");
+            } else {
+              console.log(data);
+              toast.error("Verification failed");
+            }
+          });
       },
+
       onClose: () => {
         setLoading(false);
         toast("Payment cancelled.");
