@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -19,6 +19,9 @@ import {
   Activity,
 } from "lucide-react";
 import type { Variants } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@radix-ui/themes";
 // import FloatingIcons from "./components/FloatingIcons";
 
 const fadeUp: Variants = {
@@ -376,6 +379,39 @@ function InsightsMockup() {
 
 export default function Home() {
   const heroRef = useRef(null);
+
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      // If logged in → redirect to dashboard
+      if (session) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      // If not logged in → show landing page
+      setCheckingAuth(false);
+    };
+
+    checkUser();
+  }, [router]);
+
+  // Prevent landing page flash while checking auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center">
+        <div className="text-center mt-44">
+          <Spinner size="3" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background overflow-x-hidden">
