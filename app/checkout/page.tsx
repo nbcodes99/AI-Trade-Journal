@@ -195,7 +195,6 @@ export default function UpgradePage() {
       amount: plan.amountKobo,
       currency: "NGN",
 
-      // 🔥 IMPORTANT: embed userId in reference
       ref: `glint_${session?.user?.id}_${selectedPlan}_${Date.now()}`,
 
       metadata: {
@@ -220,9 +219,12 @@ export default function UpgradePage() {
           }),
         })
           .then((res) => res.json())
-          .then((data) => {
+          .then(async (data) => {
             if (data.success) {
-              toast.success("Upgraded to Pro 🎉");
+              toast.success("Welcome to Pro 🎉");
+              await supabase.auth.refreshSession();
+
+              router.refresh();
               router.push("/dashboard");
             } else {
               console.log(data);

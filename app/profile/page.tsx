@@ -19,6 +19,17 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   User,
   Mail,
   Lock,
@@ -37,16 +48,21 @@ import {
   AlertTriangle,
   Camera,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProfilePage() {
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
+
+  const router = useRouter();
 
   const [fullName, setFullName] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
@@ -133,6 +149,29 @@ export default function ProfilePage() {
     );
   }
 
+  const handleDeleteAccount = async () => {
+    if (!userId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api//delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await supabase.auth.signOut();
+        toast.success("Account deleted successfully.");
+        window.location.href = "/";
+      } else {
+        toast.error(data.error || "Failed to delete account.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong.");
+    }
+    setDeleting(false);
+  };
+
   const handleSaveProfile = async () => {
     if (!userId) return;
     setSavingProfile(true);
@@ -217,6 +256,10 @@ export default function ProfilePage() {
       setIsPro(false);
       setUnsubscribeModalOpen(false);
       toast.success("You've been unsubscribed. Thanks for being a member!");
+      await supabase.auth.refreshSession();
+
+      router.refresh();
+      router.push("/dashboard");
     } catch (e: any) {
       toast.error(e.message || "Failed to unsubscribe.");
     }
@@ -608,7 +651,6 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-destructive/40 text-destructive hover:bg-destructive hover:text-foreground gap-2 shrink-0"
                 // onClick={() => setDeleteTradesModalOpen(true)}
                 // disabled={deletingTrades || trades.length === 0}
               >
@@ -627,19 +669,52 @@ export default function ProfilePage() {
                   cannot be undone.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-destructive/40 text-destructive hover:bg-destructive hover:text-foreground gap-2 shrink-0"
-                onClick={() =>
-                  toast.error(
-                    "Please contact support@glint.app to delete your account.",
-                  )
-                }
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Account
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2 shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete your account and every trade,
+                      insight, and risk rule you have ever logged. This action
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <Button
+                          className="flex items-center gap-2"
+                          variant="destructive"
+                        >
+                          <Spinner />
+                          Deleting...
+                        </Button>
+                      ) : (
+                        <Button className="gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          Yes, Delete My Account
+                        </Button>
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
 

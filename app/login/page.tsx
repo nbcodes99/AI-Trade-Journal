@@ -28,10 +28,10 @@ export default function Login() {
       password,
     });
     if (error) {
-      toast.error(error.message);
+      toast.error("Login failed!");
       setLoading(false);
     } else {
-      toast.success("Signed in successfully! Redirecting...");
+      toast.success("Signed in successfully!");
       window.location.href = window.location.origin + "/dashboard";
     }
   };
@@ -213,7 +213,6 @@ export default function Login() {
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Signing in...
                   </span>
                 ) : (
                   "Sign In"

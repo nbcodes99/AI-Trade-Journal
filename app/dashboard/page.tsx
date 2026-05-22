@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { ChevronRight, BookOpen } from "lucide-react";
+import Link from "next/link";
 import {
   PieChart,
   Pie,
@@ -42,6 +43,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useAuth } from "@/lib/session";
+import { Button } from "@/components/ui/button";
 
 const chartConfig = {
   value: { label: "Value" },
@@ -811,45 +813,55 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base font-bold">
-                Recent Trades
-              </CardTitle>
-              <Badge variant="outline" className="text-xs">
-                {recentTrades.length} trades
-              </Badge>
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 px-6">
+              <div>
+                <CardTitle className=" font-bold">Recent Trades</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5 hidden md:block">
+                  Your last {recentTrades.length} logged trades
+                </p>
+              </div>
+              <Link href="/trades">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-sm h-8"
+                >
+                  <span className="hidden md:block">View All</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="pl-6 text-xs font-semibold">
+                    <TableRow className="border-border/60 hover:bg-transparent">
+                      <TableHead className="pl-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Date
                       </TableHead>
-                      <TableHead className="text-xs font-semibold">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Asset
                       </TableHead>
-                      <TableHead className="text-xs font-semibold">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Setup
                       </TableHead>
-                      <TableHead className="text-xs font-semibold">
-                        Entry
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold">
-                        Exit
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Type
                       </TableHead>
-                      <TableHead className="text-xs font-semibold">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
+                        Entry
+                      </TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
+                        Exit
+                      </TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Emotion
                       </TableHead>
-                      <TableHead className="text-xs font-semibold">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3">
                         Result
                       </TableHead>
-                      <TableHead className="text-xs font-semibold text-right pr-6">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-3 text-right pr-6">
                         ROI
                       </TableHead>
                     </TableRow>
@@ -857,81 +869,144 @@ export default function Dashboard() {
                   <TableBody>
                     {loading ? (
                       Array.from({ length: 5 }).map((_, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow key={idx} className="border-border/40">
                           {Array.from({ length: 9 }).map((__, ci) => (
-                            <TableCell key={ci}>
-                              <Skeleton className="h-4 w-full" />
+                            <TableCell key={ci} className="py-3.5">
+                              <Skeleton className="h-3.5 w-full rounded-full" />
                             </TableCell>
                           ))}
                         </TableRow>
                       ))
                     ) : recentTrades.length === 0 ? (
                       <TableRow>
-                        <TableCell
-                          colSpan={9}
-                          className="text-center py-12 text-muted-foreground text-sm"
-                        >
-                          No trades logged yet. Start journaling to see your
-                          history here.
+                        <TableCell colSpan={9} className="text-center py-16">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                              <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                              No trades yet
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Start journaling to see your history here
+                            </p>
+                            <Link href="/journal">
+                              <Button
+                                size="sm"
+                                className="gap-2 mt-1 h-8 text-xs"
+                              >
+                                <BookOpen className="h-3.5 w-3.5" /> Log First
+                                Trade
+                              </Button>
+                            </Link>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      recentTrades.map((trade) => {
+                      recentTrades.map((trade, i) => {
                         const isWin = trade.result === "win";
+                        const isLoss = trade.result === "loss";
                         const roiValue = getRoi(trade);
                         const roiText =
                           roiValue !== 0
                             ? `${roiValue > 0 ? "+" : ""}${roiValue.toFixed(2)}%`
                             : "—";
+
                         return (
                           <TableRow
                             key={trade.id}
-                            className="hover:bg-muted/40 transition-colors"
+                            className="border-border/40 hover:bg-muted/30 transition-colors group"
                           >
-                            <TableCell className="pl-6 text-xs text-muted-foreground">
-                              {trade.created_at
-                                ? format(
-                                    new Date(trade.created_at),
-                                    "MMM dd, yyyy",
-                                  )
-                                : "—"}
+                            <TableCell className="pl-6 py-4">
+                              <p className="text-xs text-muted-foreground font-medium">
+                                {trade.created_at
+                                  ? format(
+                                      new Date(trade.created_at),
+                                      "MMM d, yyyy",
+                                    )
+                                  : "—"}
+                              </p>
                             </TableCell>
-                            <TableCell className="font-semibold text-sm">
-                              {trade.asset || "—"}
+
+                            <TableCell className="py-4">
+                              <span className="text-sm font-extrabold text-foreground tracking-wide">
+                                {trade.asset || "—"}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-xs max-w-[100px] truncate">
-                              {trade.setup || "—"}
+
+                            <TableCell className="py-4 max-w-[110px]">
+                              <span className="text-xs text-muted-foreground truncate block">
+                                {trade.setup || "—"}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-xs">
-                              {trade.entry ?? "—"}
+
+                            <TableCell className="py-4">
+                              {trade.trade_type ? (
+                                <div
+                                  className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                                    trade.trade_type === "long"
+                                      ? "text-primary"
+                                      : "text-destructive"
+                                  }`}
+                                >
+                                  {trade.trade_type === "long" ? (
+                                    <TrendingUp className="h-3 w-3" />
+                                  ) : (
+                                    <TrendingDown className="h-3 w-3" />
+                                  )}
+                                  {trade.trade_type.charAt(0).toUpperCase() +
+                                    trade.trade_type.slice(1)}
+                                </div>
+                              ) : (
+                                "—"
+                              )}
                             </TableCell>
-                            <TableCell className="text-xs">
-                              {trade.exit ?? "—"}
+
+                            <TableCell className="py-4">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {trade.entry ?? "—"}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-xs">
-                              {trade.trade_type ?? "—"}
+
+                            <TableCell className="py-4">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {trade.exit ?? "—"}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-xs">
-                              {trade.emotion ?? "—"}
+
+                            <TableCell className="py-4">
+                              <span className="text-xs text-muted-foreground capitalize">
+                                {trade.emotion ?? "—"}
+                              </span>
                             </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
+
+                            <TableCell className="py-4">
+                              <div
+                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
                                   isWin
-                                    ? "default"
-                                    : trade.result === "loss"
-                                      ? "destructive"
-                                      : "secondary"
-                                }
-                                className="text-xs font-bold"
+                                    ? "bg-primary/15 text-primary"
+                                    : isLoss
+                                      ? "bg-destructive/15 text-destructive"
+                                      : "bg-muted text-muted-foreground"
+                                }`}
                               >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    isWin
+                                      ? "bg-primary"
+                                      : isLoss
+                                        ? "bg-destructive"
+                                        : "bg-muted-foreground"
+                                  }`}
+                                />
                                 {trade.result
                                   ? trade.result.toUpperCase()
                                   : "—"}
-                              </Badge>
+                              </div>
                             </TableCell>
+
                             <TableCell
-                              className={`text-right pr-6 text-sm font-bold ${
+                              className={`text-right pr-6 py-4 text-sm font-extrabold tabular-nums ${
                                 roiValue > 0
                                   ? "text-primary"
                                   : roiValue < 0

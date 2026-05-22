@@ -436,8 +436,8 @@ export default function RiskManager() {
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col items-center gap-4 sm:gap-0 sm:flex-row sm:items-center sm:gap-3 w-full">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 shrink-0">
-              <Shield className="h-4 w-4 text-primary" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/15 shrink-0">
+              <Shield className="h-10 w-10 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
@@ -445,7 +445,7 @@ export default function RiskManager() {
                   Risk Manager
                 </h1>
                 <div
-                  className={`inline-flex items-center gap-1.5 mb-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
                     overallStatus === "safe"
                       ? "border-primary/20 bg-primary/10 text-primary"
                       : overallStatus === "warning"
@@ -461,7 +461,7 @@ export default function RiskManager() {
                       : "Stop Trading"}
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                 Protect capital · Trade with discipline
               </p>
             </div>
@@ -1141,12 +1141,14 @@ export default function RiskManager() {
                             </p>
                           </div>
                         </div>
-                        <button
+                        <Button
                           onClick={resetChecklist}
-                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                          variant="ghost"
+                          className="text-xs text-muted-foreground flex items-center gap-1 transition-colors"
                         >
-                          <RotateCcw className="h-3 w-3" /> Reset
-                        </button>
+                          <RotateCcw className="h-3 w-3" />{" "}
+                          <span className="hidden md:block">Reset</span>
+                        </Button>
                       </div>
 
                       <div className="mt-3 space-y-1.5">
@@ -1166,7 +1168,7 @@ export default function RiskManager() {
                             className="flex items-center gap-1.5 text-xs text-primary font-semibold"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> All checks
-                            passed — you're clear to trade
+                            passed! You're clear to trade
                           </motion.div>
                         )}
                       </div>
@@ -1256,14 +1258,14 @@ export default function RiskManager() {
                 <div className="space-y-4">
                   <Card className="border-border">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
                         <Info className="h-4 w-4 text-primary" />
                         <CardTitle className="text-sm font-bold">
                           What to add
                         </CardTitle>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-2 text-left">
                       {[
                         // "Is my R:R at least 1:2?",
                         // "Have I NOT hit my daily loss limit?",
@@ -1274,14 +1276,16 @@ export default function RiskManager() {
                         "Is the market condition clear?",
                         "Have I checked higher timeframe bias?",
                       ].map((tip) => (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           key={tip}
                           onClick={() => setNewCheckItem(tip)}
-                          className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 px-3 py-2 rounded-lg transition-colors flex items-center gap-2 group"
+                          className="w-full text-left text-xs text-muted-foreground transition-colors py-2 flex items-start gap-2 group"
                         >
                           <Plus className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                           {tip}
-                        </button>
+                        </Button>
                       ))}
                     </CardContent>
                   </Card>
@@ -1297,7 +1301,7 @@ export default function RiskManager() {
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             Glint monitors your risk limits in real-time and
                             notifies you anywhere in the app when you approach
-                            or breach them — even if you're on a different page.
+                            or breach them.
                           </p>
                         </div>
                       </div>

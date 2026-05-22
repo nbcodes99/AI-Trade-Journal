@@ -24,6 +24,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Search,
   SlidersHorizontal,
   TrendingUp,
@@ -41,10 +47,21 @@ import Link from "next/link";
 type SortKey = "date" | "asset" | "roi" | "result" | "trade_type";
 type SortDir = "asc" | "desc";
 
+const InfoItem = ({ label, value }: { label: string; value: any }) => (
+  <div className="rounded-xl border border-border bg-muted/20 p-3">
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+      {label}
+    </p>
+
+    <p className="text-sm font-semibold break-words">{value || "—"}</p>
+  </div>
+);
+
 export default function Trades() {
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [filterResult, setFilterResult] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -79,7 +96,16 @@ export default function Trades() {
     return isNaN(r) ? 0 : r;
   };
 
-  // Summary stats
+  const InfoItem = ({ label, value }: { label: string; value: any }) => (
+    <div className="rounded-xl border border-border bg-muted/20 p-3">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+        {label}
+      </p>
+
+      <p className="text-sm font-semibold break-words">{value || "—"}</p>
+    </div>
+  );
+
   const wins = trades.filter((t) => t.result === "win").length;
   const losses = trades.filter((t) => t.result === "loss").length;
   const totalRoi = trades.reduce((a, t) => a + getRoi(t), 0);
@@ -87,7 +113,6 @@ export default function Trades() {
     ? ((wins / trades.length) * 100).toFixed(1)
     : "0.0";
 
-  // Filter + sort
   const filtered = useMemo(() => {
     let result = [...trades];
     if (search) {
@@ -360,10 +385,10 @@ export default function Trades() {
           </Card>
         ) : (
           <>
-            <div className="rounded-2xl border border-border overflow-hidden bg-card">
+            <div className="rounded-2xl border border-border overflow-hidden bg-cards">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border">
+                  <TableRow className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer">
                     {[
                       { label: "Date", key: "date" as SortKey },
                       { label: "Asset", key: "asset" as SortKey },
@@ -395,8 +420,9 @@ export default function Trades() {
                     const isLoss = trade.result === "loss";
                     return (
                       <TableRow
+                        className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer"
+                        onClick={() => setSelectedTrade(trade)}
                         key={trade.id || idx}
-                        className="border-b border-border/50 hover:bg-muted/30 transition-colors group"
                       >
                         <TableCell className="py-3.5 text-sm text-muted-foreground font-medium">
                           {trade.date
@@ -543,6 +569,199 @@ export default function Trades() {
           </>
         )}
       </div>
+
+      <Dialog
+        open={!!selectedTrade}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTrade(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          {selectedTrade && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between gap-3 my-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold">
+                      {selectedTrade.asset || "Trade Details"}
+                    </span>
+
+                    <Badge
+                      variant={
+                        selectedTrade.result === "win"
+                          ? "default"
+                          : selectedTrade.result === "loss"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                      className="uppercase"
+                    >
+                      {selectedTrade.result || "Unknown"}
+                    </Badge>
+                  </div>
+
+                  <div
+                    className={`text-lg font-extrabold ${
+                      getRoi(selectedTrade) > 0
+                        ? "text-primary"
+                        : getRoi(selectedTrade) < 0
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {getRoi(selectedTrade) > 0 ? "+" : ""}
+                    {getRoi(selectedTrade).toFixed(2)}%
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-6 py-2">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                    Overview
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoItem
+                      label="Date"
+                      value={
+                        selectedTrade.date
+                          ? format(new Date(selectedTrade.date), "PPP")
+                          : "—"
+                      }
+                    />
+
+                    <InfoItem
+                      label="Trade Type"
+                      value={selectedTrade.trade_type || "—"}
+                    />
+
+                    <InfoItem
+                      label="Setup"
+                      value={selectedTrade.setup || "—"}
+                    />
+
+                    <InfoItem
+                      label="Emotion"
+                      value={selectedTrade.emotion || "—"}
+                    />
+
+                    <InfoItem
+                      label="Confluence"
+                      value={selectedTrade.confluence || "—"}
+                    />
+
+                    <InfoItem
+                      label="Market Condition"
+                      value={selectedTrade.market_condition || "—"}
+                    />
+
+                    <InfoItem
+                      label="Timeframe"
+                      value={selectedTrade.timeframe || "—"}
+                    />
+
+                    <InfoItem
+                      label="Confidence"
+                      value={
+                        selectedTrade.confidence_level
+                          ? `${selectedTrade.confidence_level}/10`
+                          : "—"
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                    Trade Execution
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoItem
+                      label="Entry"
+                      value={selectedTrade.entry ?? "—"}
+                    />
+
+                    <InfoItem label="Exit" value={selectedTrade.exit ?? "—"} />
+
+                    <InfoItem
+                      label="Stop Loss"
+                      value={selectedTrade.stop_loss ?? "—"}
+                    />
+
+                    <InfoItem
+                      label="Position Size"
+                      value={selectedTrade.position_size ?? "—"}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                    Financials
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoItem
+                      label="PnL"
+                      value={
+                        selectedTrade.pnl !== null &&
+                        selectedTrade.pnl !== undefined
+                          ? `$${selectedTrade.pnl}`
+                          : "—"
+                      }
+                    />
+
+                    <InfoItem
+                      label="Commission"
+                      value={
+                        selectedTrade.commission !== null &&
+                        selectedTrade.commission !== undefined
+                          ? `$${selectedTrade.commission}`
+                          : "—"
+                      }
+                    />
+
+                    <InfoItem
+                      label="Account Balance"
+                      value={
+                        selectedTrade.account_balance !== null &&
+                        selectedTrade.account_balance !== undefined
+                          ? `$${selectedTrade.account_balance}`
+                          : "—"
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Metadata */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                    Metadata
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoItem
+                      label="Trade ID"
+                      value={selectedTrade.id || "—"}
+                    />
+
+                    <InfoItem
+                      label="Created"
+                      value={
+                        selectedTrade.created_at
+                          ? format(new Date(selectedTrade.created_at), "PPP p")
+                          : "—"
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

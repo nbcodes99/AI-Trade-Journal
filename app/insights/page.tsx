@@ -188,7 +188,7 @@ function NotEnoughTrades({ count }: { count: number }) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="border-b border-border bg-background/80 backdrop-blur-sm px-6 py-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-xl font-bold text-foreground">AI Insights</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Your personal AI trading coach
@@ -221,7 +221,7 @@ function NotEnoughTrades({ count }: { count: number }) {
               variant="outline"
               className="border-primary/30 text-primary text-xs"
             >
-              AI Coach is watching
+              Glint is watching
             </Badge>
             <h2 className="text-2xl font-extrabold text-foreground">
               Your insights are almost ready
@@ -232,8 +232,8 @@ function NotEnoughTrades({ count }: { count: number }) {
                 {MIN_TRADES} trades
               </span>{" "}
               to identify meaningful patterns in your behavior. You have{" "}
-              <span className="text-primary font-bold">{count}</span> so far —
-              log{" "}
+              <span className="text-primary font-bold">{count}</span> so far.
+              Log{" "}
               <span className="text-foreground font-semibold">
                 {needed} more
               </span>{" "}
@@ -291,7 +291,7 @@ function NotEnoughTrades({ count }: { count: number }) {
           </div>
 
           <Link href="/journal">
-            <Button className="w-full gap-2 font-bold h-11">
+            <Button className="w-full gap-2 font-bold h-11 cursor-pointer">
               <BookOpen className="h-4 w-4" />
               Log a Trade Now
             </Button>
