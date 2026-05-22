@@ -13,7 +13,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Star,
-  ChevronRight,
   BookOpen,
   Target,
   Activity,
@@ -22,7 +21,6 @@ import type { Variants } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@radix-ui/themes";
-// import FloatingIcons from "./components/FloatingIcons";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 32 },
@@ -389,20 +387,17 @@ export default function Home() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      // If logged in → redirect to dashboard
       if (session) {
         router.replace("/dashboard");
         return;
       }
 
-      // If not logged in → show landing page
       setCheckingAuth(false);
     };
 
     checkUser();
   }, [router]);
 
-  // Prevent landing page flash while checking auth
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center">
