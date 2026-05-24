@@ -147,13 +147,13 @@ export default function Signup() {
               </Button>
             </div> */}
 
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground uppercase tracking-widest">
                 or
               </span>
               <div className="flex-1 h-px bg-border" />
-            </div>
+            </div> */}
 
             <form
               onSubmit={(e) => {
