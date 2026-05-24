@@ -92,7 +92,7 @@ export default function Signup() {
 
         <Card className="rounded-2xl shadow-sm border border-border">
           <CardContent className="p-8 space-y-6">
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <Button
                 type="button"
                 variant="outline"
@@ -145,7 +145,7 @@ export default function Signup() {
                 )}
                 Continue with Apple
               </Button>
-            </div>
+            </div> */}
 
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />

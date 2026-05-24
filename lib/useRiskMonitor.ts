@@ -5,6 +5,13 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { startOfDay, startOfWeek } from "date-fns";
 
+const DEFAULT_RULES = {
+  account_balance: 10000,
+  max_daily_loss_pct: 3,
+  max_weekly_drawdown_pct: 6,
+  max_trades_per_day: 5,
+};
+
 export function useRiskMonitor(userId: string | null) {
   const lastNotified = useRef<Record<string, number>>({});
 
@@ -32,19 +39,24 @@ export function useRiskMonitor(userId: string | null) {
           .limit(100),
       ]);
 
-      const rules = rulesRes.data;
+      // Use saved rules or fall back to defaults if no row yet
+      const rules = rulesRes.data ?? DEFAULT_RULES;
       const trades = tradesRes.data || [];
-      if (!rules) return;
+
+      if (!rules || trades.length === 0) return;
 
       const todayStart = startOfDay(new Date());
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
 
-      const todayTrades = trades.filter(
-        (t) => new Date(t.created_at || t.date) >= todayStart,
-      );
-      const weekTrades = trades.filter(
-        (t) => new Date(t.created_at || t.date) >= weekStart,
-      );
+      const todayTrades = trades.filter((t) => {
+        const d = new Date(t.date || t.created_at);
+        return d >= todayStart;
+      });
+
+      const weekTrades = trades.filter((t) => {
+        const d = new Date(t.date || t.created_at);
+        return d >= weekStart;
+      });
 
       const getPnl = (t: any) => {
         const p = typeof t.pnl === "string" ? parseFloat(t.pnl) : t.pnl;
@@ -61,8 +73,10 @@ export function useRiskMonitor(userId: string | null) {
       const dailyLossLimit =
         (rules.max_daily_loss_pct / 100) * rules.account_balance;
 
+      // Daily loss alerts
       const dailyUsedPct =
-        Math.abs(todayPnL < 0 ? todayPnL : 0) / dailyLossLimit;
+        Math.abs(todayPnL < 0 ? todayPnL : 0) / (dailyLossLimit || 1);
+
       if (dailyUsedPct >= 1 && canNotify("daily_breach")) {
         toast.error("🚨 Daily loss limit breached", {
           description: `You've hit your $${dailyLossLimit.toFixed(0)} daily limit. Stop trading for today.`,
@@ -79,7 +93,9 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
-      const weekUsedPct = weekRoi / rules.max_weekly_drawdown_pct;
+      // Weekly drawdown alerts
+      const weekUsedPct = weekRoi / (rules.max_weekly_drawdown_pct || 1);
+
       if (weekUsedPct >= 1 && canNotify("week_breach")) {
         toast.error("🚨 Weekly drawdown limit hit", {
           description: `You've hit your ${rules.max_weekly_drawdown_pct}% weekly drawdown limit.`,
@@ -96,6 +112,7 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
+      // Max trades alerts
       if (
         todayCount >= rules.max_trades_per_day &&
         canNotify("trades_breach")
@@ -114,9 +131,18 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
+      // Consecutive losses
       const recent = trades.slice(0, 5);
-      const recentLosses = recent.filter((t) => t.result === "loss").length;
-      if (recentLosses >= 3 && canNotify("consec_losses", 30 * 60 * 1000)) {
+      let consecutiveLosses = 0;
+      for (const t of recent) {
+        if (t.result === "loss") consecutiveLosses++;
+        else break;
+      }
+
+      if (
+        consecutiveLosses >= 3 &&
+        canNotify("consec_losses", 30 * 60 * 1000)
+      ) {
         toast.warning("⚠️ 3+ consecutive losses detected", {
           description:
             "Consider stepping away. Revenge trading after losses is a common pattern.",
@@ -125,40 +151,9 @@ export function useRiskMonitor(userId: string | null) {
       }
     };
 
+    // Run immediately then every 3 minutes
     check();
     const interval = setInterval(check, 3 * 60 * 1000);
-
-    const channel = supabase
-      .channel(`risk-monitor-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "trades",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          check();
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "trades",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          check();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      channel.unsubscribe();
-    };
+    return () => clearInterval(interval);
   }, [userId]);
 }

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { startOfDay, startOfWeek } from "date-fns";
+import { endOfDay, endOfWeek, startOfDay, startOfWeek } from "date-fns";
 import {
   Shield,
   AlertTriangle,
@@ -267,11 +267,22 @@ export default function RiskManager() {
           .eq("user_id", userId)
           .order("created_at", { ascending: true }),
       ]);
+
       if (rulesRes.data) {
         const r = { ...DEFAULT_RULES, ...rulesRes.data };
         setRules(r);
         setSavedRules(r);
+      } else {
+        const { data: newRules } = await supabase
+          .from("risk_rules")
+          .insert({ user_id: userId, ...DEFAULT_RULES })
+          .select()
+          .single();
+        if (newRules) {
+          setSavedRules(DEFAULT_RULES);
+        }
       }
+
       setTrades(tradesRes.data || []);
       setChecklist(
         checklistRes.data?.map((i: any) => ({
@@ -286,32 +297,38 @@ export default function RiskManager() {
   }, [userId]);
 
   const getRoi = (t: any) => {
-    const r = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
-    return isNaN(r) ? 0 : r;
+    const value = Number(t.roi);
+    return Number.isFinite(value) ? value : 0;
   };
   const getPnl = (t: any) => {
-    const p = typeof t.pnl === "string" ? parseFloat(t.pnl) : t.pnl;
-    return isNaN(p) ? 0 : p;
+    const value = Number(t.pnl);
+    return Number.isFinite(value) ? value : 0;
   };
-
   const todayStart = startOfDay(new Date());
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const todayTrades = trades.filter(
-    (t) => new Date(t.created_at || t.date) >= todayStart,
-  );
-  const weekTrades = trades.filter(
-    (t) => new Date(t.created_at || t.date) >= weekStart,
-  );
+
+  const todayEnd = endOfDay(new Date());
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const todayTrades = trades.filter((t) => {
+    const tradeDate = new Date(t.created_at);
+    return tradeDate >= todayStart && tradeDate <= todayEnd;
+  });
+
+  const weekTrades = trades.filter((t) => {
+    const tradeDate = new Date(t.created_at);
+    return tradeDate >= weekStart && tradeDate <= weekEnd;
+  });
+
   const todayPnL = todayTrades.reduce((a, t) => a + getPnl(t), 0);
   const weekRoi = Math.abs(weekTrades.reduce((a, t) => a + getRoi(t), 0));
   const todayCount = todayTrades.length;
   const dailyLossLimit =
     (savedRules.max_daily_loss_pct / 100) * savedRules.account_balance;
 
-  const dailyStatus = getStatus(
-    Math.abs(todayPnL < 0 ? todayPnL : 0),
-    dailyLossLimit,
-  );
+  const dailyLossUsed = todayPnL < 0 ? Math.abs(todayPnL) : 0;
+
+  const dailyStatus = getStatus(dailyLossUsed, dailyLossLimit);
   const weekStatus = getStatus(weekRoi, savedRules.max_weekly_drawdown_pct);
   const tradeCountStatus = getStatus(todayCount, savedRules.max_trades_per_day);
   const overallStatus: "safe" | "warning" | "breach" = [
@@ -543,14 +560,14 @@ export default function RiskManager() {
               </p>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
               {[
                 {
                   label: "Daily Loss",
                   icon: TrendingDown,
                   value:
-                    todayPnL < 0
-                      ? `-$${Math.abs(todayPnL).toFixed(2)}`
+                    dailyLossUsed > 0
+                      ? `-$${dailyLossUsed.toFixed(2)}`
                       : "$0.00",
                   sub: `of $${dailyLossLimit.toFixed(0)} limit`,
                   status: dailyStatus,
