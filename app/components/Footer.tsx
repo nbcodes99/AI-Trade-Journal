@@ -83,19 +83,19 @@ export default function Footer() {
         </p>
         <div className="flex flex-col md:flex-row items-center gap-4 mt-6 md:mt-0">
           <a
-            href="/privacy"
+            href="#"
             className="underline cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Privacy Policy
           </a>
           <a
-            href="/terms"
+            href="#"
             className="underline cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Terms of Service
           </a>
           <a
-            href="/cookies"
+            href="#"
             className="underline cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Cookies
