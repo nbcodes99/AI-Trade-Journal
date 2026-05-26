@@ -341,6 +341,7 @@ export function TopBar() {
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="p-0 gap-0 max-w-md overflow-hidden rounded-2xl border border-border shadow-2xl">
+          <DialogTitle className="sr-only">Search Trades</DialogTitle>
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input

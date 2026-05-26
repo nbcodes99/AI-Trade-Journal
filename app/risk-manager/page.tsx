@@ -322,6 +322,7 @@ export default function RiskManager() {
 
   const todayPnL = todayTrades.reduce((a, t) => a + getPnl(t), 0);
   const weekRoi = Math.abs(weekTrades.reduce((a, t) => a + getRoi(t), 0));
+
   const todayCount = todayTrades.length;
   const dailyLossLimit =
     (savedRules.max_daily_loss_pct / 100) * savedRules.account_balance;
