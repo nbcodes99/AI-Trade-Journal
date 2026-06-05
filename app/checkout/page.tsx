@@ -120,18 +120,18 @@ export default function UpgradePage() {
   if (isPro) {
     return (
       <section className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-          <Card className="border-border shadow-sm">
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-extrabold text-foreground mb-2">
-                You're already subscribed!
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Thanks for being a Pro member. Head back to your dashboard to
-                manage your account.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="max-w-4xl text-center mx-auto px-4 sm:px-6 py-12">
+          {/* <Card className="border-border shadow-sm">
+            <CardContent className="p-6 text-center"> */}
+          <div className="text-2xl font-extrabold text-foreground mb-2">
+            You're already subscribed!
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Thanks for being a Pro member. Head back to your dashboard to manage
+            your account.
+          </p>
+          {/* </CardContent>
+          </Card> */}
         </div>
       </section>
     );

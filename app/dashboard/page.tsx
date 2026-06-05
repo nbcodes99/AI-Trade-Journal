@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/session";
 import { Button } from "@/components/ui/button";
+import { buildEquityCurve, calcAllStats } from "@/lib/tradeCalculations";
 
 const chartConfig = {
   value: { label: "Value" },
@@ -169,6 +170,7 @@ export default function Dashboard() {
         .select("plan")
         .eq("id", userId)
         .single();
+
       setIsPro(profileRes.data?.plan === "pro");
 
       const { data, error } = await supabase
@@ -180,13 +182,16 @@ export default function Dashboard() {
       setTrades(error ? [] : data || []);
       setLoading(false);
     };
+
     fetchTrades();
   }, [userId]);
 
   const getFilteredTrades = () => {
     if (timeframe === "All") return trades;
+
     const now = new Date();
     let startDate: Date;
+
     switch (timeframe) {
       case "1W":
         startDate = subWeeks(now, 1);
@@ -203,27 +208,54 @@ export default function Dashboard() {
       default:
         return trades;
     }
+
     return trades.filter((t) => new Date(t.created_at || t.date) >= startDate);
   };
-
+  const formatMoney = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
   const filteredTrades = getFilteredTrades();
-  const totalTrades = filteredTrades.length;
-  const wins = filteredTrades.filter((t) => t.result === "win").length;
-  const losses = filteredTrades.filter((t) => t.result === "loss").length;
-  const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
+
+  const stats = useMemo(() => calcAllStats(filteredTrades), [filteredTrades]);
+  const equityData = useMemo(
+    () => buildEquityCurve(filteredTrades),
+    [filteredTrades],
+  );
+  const recentTrades = useMemo(
+    () => [...trades].reverse().slice(0, 5),
+    [trades],
+  );
+
+  const totalRoiPositive = stats.totalRoi >= 0;
 
   const getRoi = (t: any) => {
     const r = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
     return isNaN(r) ? 0 : r;
   };
 
-  const totalPnL = filteredTrades.reduce((acc, t) => acc + getRoi(t), 0);
-  const averageROI = totalTrades ? (totalPnL / totalTrades).toFixed(2) : "0.00";
+  const getPnl = (t: any) => {
+    const p = typeof t.pnl === "string" ? parseFloat(t.pnl) : t.pnl;
+    return isNaN(p) ? 0 : p;
+  };
+
+  const totalTrades = filteredTrades.length;
+
+  const wins = filteredTrades.filter((t) => t.result === "win").length;
+  const losses = filteredTrades.filter((t) => t.result === "loss").length;
+
+  const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : "0.0";
+  const totalPnL = filteredTrades.reduce((acc, t) => acc + getPnl(t), 0);
+
+  const totalROI = filteredTrades.reduce((acc, t) => acc + getRoi(t), 0);
+
+  const averageROI = totalTrades ? (totalROI / totalTrades).toFixed(2) : "0.00";
   const allRois = filteredTrades.map(getRoi);
   const bestTrade = allRois.length ? Math.max(...allRois) : 0;
-  // const worstTrade = allRois.length ? Math.min(...allRois) : 0;
-  // const profitFactor =
-  //   losses > 0 ? (wins / losses).toFixed(2) : wins > 0 ? "∞" : "0";
 
   let currentStreak = 0,
     bestStreak = 0,
@@ -241,17 +273,17 @@ export default function Dashboard() {
     else break;
   }
 
-  const equityData = filteredTrades.map((t, i) => ({
-    trade: i + 1,
-    value: parseFloat(
-      filteredTrades
-        .slice(0, i + 1)
-        .reduce((acc, x) => acc + getRoi(x), 0)
-        .toFixed(2),
-    ),
-    label: t.asset || `#${i + 1}`,
-    date: t.created_at,
-  }));
+  // const equityData = filteredTrades.map((t, i) => ({
+  //   trade: i + 1,
+  //   value: parseFloat(
+  //     filteredTrades
+  //       .slice(0, i + 1)
+  //       .reduce((acc, x) => acc + getRoi(x), 0)
+  //       .toFixed(2),
+  //   ),
+  //   label: t.asset || `#${i + 1}`,
+  //   date: t.created_at,
+  // }));
 
   const winLossData = [
     { name: "Wins", value: wins },
@@ -272,7 +304,7 @@ export default function Dashboard() {
     count: s.count,
   }));
 
-  const recentTrades = trades.slice(-5).reverse();
+  // const recentTrades = trades.slice(-5).reverse();
   const pnlPositive = totalPnL >= 0;
   const winRateNum = parseFloat(winRate);
 
@@ -349,27 +381,27 @@ export default function Dashboard() {
             />
             <StatCard
               title="Win Rate"
-              value={`${winRate}%`}
+              value={loading ? "—" : `${stats.winRate.toFixed(1)}%`}
               subtitle={`${wins}W / ${losses}L`}
               icon={Target}
-              trend={winRateNum >= 50 ? "up" : "down"}
+              trend={stats.winRate >= 50 ? "up" : "down"}
               loading={loading}
             />
             <StatCard
-              title="Total P&L"
+              title="Total ROI"
               value={
-                pnlPositive
-                  ? `+$${totalPnL.toFixed(2)}`
-                  : `-$${Math.abs(totalPnL).toFixed(2)}`
+                loading
+                  ? "—"
+                  : `${totalRoiPositive ? "+" : ""}${stats.totalRoi.toFixed(2)}%`
               }
               subtitle="Cumulative return"
               icon={DollarSign}
-              trend={pnlPositive ? "up" : "down"}
+              trend={totalRoiPositive ? "up" : "down"}
               loading={loading}
             />
             <StatCard
               title="Best Trade"
-              value={`+${bestTrade.toFixed(2)}%`}
+              value={loading ? "—" : `+${stats.bestTrade.toFixed(2)}%`}
               subtitle="Highest single return"
               icon={Award}
               trend="up"
@@ -381,52 +413,38 @@ export default function Dashboard() {
             <div className="grid lg:grid-cols-4 gap-4 grid-cols-1">
               <StatCard
                 title="Expectancy"
+                // value={
+                //   loading
+                //     ? "—"
+                //     : (() => {
+                //         const avgWin =
+                //           wins > 0
+                //             ? filteredTrades
+                //                 .filter((t) => t.result === "win")
+                //                 .reduce((a, t) => a + getRoi(t), 0) / wins
+                //             : 0;
+                //         const avgLoss =
+                //           losses > 0
+                //             ? Math.abs(
+                //                 filteredTrades
+                //                   .filter((t) => t.result === "loss")
+                //                   .reduce((a, t) => a + getRoi(t), 0) / losses,
+                //               )
+                //             : 0;
+                //         const winPct = totalTrades ? wins / totalTrades : 0;
+                //         const lossPct = totalTrades ? losses / totalTrades : 0;
+                //         const expectancy = winPct * avgWin - lossPct * avgLoss;
+                //         return `${expectancy >= 0 ? "+" : ""}${expectancy.toFixed(2)}%`;
+                //       })()
+                // }
                 value={
                   loading
                     ? "—"
-                    : (() => {
-                        const avgWin =
-                          wins > 0
-                            ? filteredTrades
-                                .filter((t) => t.result === "win")
-                                .reduce((a, t) => a + getRoi(t), 0) / wins
-                            : 0;
-                        const avgLoss =
-                          losses > 0
-                            ? Math.abs(
-                                filteredTrades
-                                  .filter((t) => t.result === "loss")
-                                  .reduce((a, t) => a + getRoi(t), 0) / losses,
-                              )
-                            : 0;
-                        const winPct = totalTrades ? wins / totalTrades : 0;
-                        const lossPct = totalTrades ? losses / totalTrades : 0;
-                        const expectancy = winPct * avgWin - lossPct * avgLoss;
-                        return `${expectancy >= 0 ? "+" : ""}${expectancy.toFixed(2)}%`;
-                      })()
+                    : `${stats.expectancy >= 0 ? "+" : ""}${stats.expectancy.toFixed(2)}%`
                 }
                 subtitle="Avg edge per trade"
                 icon={TrendingUp}
-                trend={(() => {
-                  const avgWin =
-                    wins > 0
-                      ? filteredTrades
-                          .filter((t) => t.result === "win")
-                          .reduce((a, t) => a + getRoi(t), 0) / wins
-                      : 0;
-                  const avgLoss =
-                    losses > 0
-                      ? Math.abs(
-                          filteredTrades
-                            .filter((t) => t.result === "loss")
-                            .reduce((a, t) => a + getRoi(t), 0) / losses,
-                        )
-                      : 0;
-                  const winPct = totalTrades ? wins / totalTrades : 0;
-                  const lossPct = totalTrades ? losses / totalTrades : 0;
-                  const expectancy = winPct * avgWin - lossPct * avgLoss;
-                  return expectancy >= 0 ? "up" : "down";
-                })()}
+                trend={stats.expectancy >= 0 ? "up" : "down"}
                 loading={loading}
               />
               <StatCard
@@ -448,6 +466,7 @@ export default function Dashboard() {
                         return `-${maxDD.toFixed(2)}%`;
                       })()
                 }
+                // value={loading ? "—" : `-${stats.maxDrawdown.toFixed(2)}%`}
                 subtitle="Deepest peak-to-trough"
                 icon={AlertTriangle}
                 trend="down"
@@ -455,85 +474,60 @@ export default function Dashboard() {
               />
               <StatCard
                 title="Avg R:R Ratio"
-                value={
-                  loading
-                    ? "—"
-                    : (() => {
-                        const avgWin =
-                          wins > 0
-                            ? filteredTrades
-                                .filter((t) => t.result === "win")
-                                .reduce((a, t) => a + getRoi(t), 0) / wins
-                            : 0;
-                        const avgLoss =
-                          losses > 0
-                            ? Math.abs(
-                                filteredTrades
-                                  .filter((t) => t.result === "loss")
-                                  .reduce((a, t) => a + getRoi(t), 0) / losses,
-                              )
-                            : 0;
-                        return avgLoss > 0
-                          ? `${(avgWin / avgLoss).toFixed(2)}R`
-                          : "—";
-                      })()
-                }
+                // value={
+                //   loading
+                //     ? "—"
+                //     : (() => {
+                //         const avgWin =
+                //           wins > 0
+                //             ? filteredTrades
+                //                 .filter((t) => t.result === "win")
+                //                 .reduce((a, t) => a + getRoi(t), 0) / wins
+                //             : 0;
+                //         const avgLoss =
+                //           losses > 0
+                //             ? Math.abs(
+                //                 filteredTrades
+                //                   .filter((t) => t.result === "loss")
+                //                   .reduce((a, t) => a + getRoi(t), 0) / losses,
+                //               )
+                //             : 0;
+                //         return avgLoss > 0
+                //           ? `${(avgWin / avgLoss).toFixed(2)}R`
+                //           : "—";
+                //       })()
+                // }
+                value={loading ? "—" : `${stats.avgRR}R`}
                 subtitle="Avg winner vs avg loser"
                 icon={BarChart2}
-                trend={(() => {
-                  const avgWin =
-                    wins > 0
-                      ? filteredTrades
-                          .filter((t) => t.result === "win")
-                          .reduce((a, t) => a + getRoi(t), 0) / wins
-                      : 0;
-                  const avgLoss =
-                    losses > 0
-                      ? Math.abs(
-                          filteredTrades
-                            .filter((t) => t.result === "loss")
-                            .reduce((a, t) => a + getRoi(t), 0) / losses,
-                        )
-                      : 0;
-                  return avgLoss > 0 && avgWin / avgLoss >= 1.5 ? "up" : "down";
-                })()}
+                trend={parseFloat(stats.avgRR) >= 1.5 ? "up" : "down"}
                 loading={loading}
               />
               <StatCard
                 title="Recovery Factor"
-                value={
-                  loading
-                    ? "—"
-                    : (() => {
-                        let peak = 0,
-                          equity = 0,
-                          maxDD = 0;
-                        filteredTrades.forEach((t) => {
-                          equity += getRoi(t);
-                          peak = Math.max(peak, equity);
-                          const dd =
-                            peak > 0 ? ((peak - equity) / peak) * 100 : 0;
-                          maxDD = Math.max(maxDD, dd);
-                        });
-                        const rf =
-                          maxDD > 0 ? (totalPnL / maxDD).toFixed(2) : "∞";
-                        return String(rf);
-                      })()
-                }
+                // value={
+                //   loading
+                //     ? "—"
+                //     : (() => {
+                //         let peak = 0,
+                //           equity = 0,
+                //           maxDD = 0;
+                //         filteredTrades.forEach((t) => {
+                //           equity += getRoi(t);
+                //           peak = Math.max(peak, equity);
+                //           const dd =
+                //             peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+                //           maxDD = Math.max(maxDD, dd);
+                //         });
+                //         const rf =
+                //           maxDD > 0 ? (totalPnL / maxDD).toFixed(2) : "∞";
+                //         return String(rf);
+                //       })()
+                // }
+                value={loading ? "—" : stats.recoveryFactor}
                 subtitle="Net P&L ÷ max drawdown"
                 icon={Zap}
-                trend={(() => {
-                  let peak = 0,
-                    equity = 0,
-                    maxDD = 0;
-                  filteredTrades.forEach((t) => {
-                    equity += getRoi(t);
-                    peak = Math.max(peak, equity);
-                    const dd = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
-                    maxDD = Math.max(maxDD, dd);
-                  });
-                  return maxDD > 0 && totalPnL / maxDD >= 1 ? "up" : "down";
-                })()}
+                trend={parseFloat(stats.recoveryFactor) >= 1 ? "up" : "down"}
                 loading={loading}
               />
             </div>
@@ -673,8 +667,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="hidden md:block">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> */}
+          {/* <Card className="hidden md:block">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-bold">
                   Win / Loss
@@ -718,9 +712,9 @@ export default function Dashboard() {
                   </ChartContainer>
                 )}
               </CardContent>
-            </Card>
+            </Card> */}
 
-            <Card className="hidden md:block">
+          {/* <Card className="hidden md:block">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-bold">
                   Setup Win Rate
@@ -761,9 +755,49 @@ export default function Dashboard() {
                   </ChartContainer>
                 )}
               </CardContent>
-            </Card>
+            </Card> */}
+          <div className="grid-cols-4 border-t border-border/60 divide-x divide-border/60 hidden md:grid">
+            {[
+              {
+                label: "Profit Factor",
+                value: loading ? "—" : stats.profitFactor,
+                color:
+                  parseFloat(stats.profitFactor) >= 1.5
+                    ? "text-primary"
+                    : "text-amber-500",
+              },
+              {
+                label: "Avg Winner",
+                value: loading ? "—" : `+${stats.avgWin.toFixed(2)}%`,
+                color: "text-primary",
+              },
+              {
+                label: "Avg Loser",
+                value: loading ? "—" : `-${stats.avgLoss.toFixed(2)}%`,
+                color: "text-destructive",
+              },
+              {
+                label: "Win Rate",
+                value: loading ? "—" : `${stats.winRate.toFixed(1)}%`,
+                color:
+                  stats.winRate >= 50 ? "text-primary" : "text-destructive",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex flex-col items-center justify-center py-4 gap-1"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {s.label}
+                </p>
+                <p className={`text-base font-extrabold ${s.color}`}>
+                  {s.value}
+                </p>
+              </div>
+            ))}
+          </div>
 
-            <Card
+          {/* <Card
               className={
                 parseFloat(averageROI) >= 0
                   ? "border-primary/20 bg-primary/5"
@@ -810,8 +844,8 @@ export default function Dashboard() {
                   </div>
                 )}
               </CardContent>
-            </Card>
-          </div>
+            </Card> */}
+          {/* </div> */}
 
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-4 px-6">

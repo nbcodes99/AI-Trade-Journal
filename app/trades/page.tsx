@@ -43,6 +43,9 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { getTradeRoi, getTradeDate, type Trade } from "@/lib/tradeCalculations";
+import router from "next/router";
+import { motion } from "framer-motion";
 
 type SortKey = "date" | "asset" | "roi" | "result" | "trade_type";
 type SortDir = "asc" | "desc";

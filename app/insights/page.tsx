@@ -29,12 +29,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Spinner } from "@radix-ui/themes";
 
-// const chartConfig = {
-//   value: { label: "Value" },
-//   winRate: { label: "Win Rate %" },
-//   pnl: { label: "P&L" },
-// };
-
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const EMOTION_COLORS: Record<string, string> = {
   calm: "#16a34a",
@@ -303,48 +297,75 @@ function NotEnoughTrades({ count }: { count: number }) {
 }
 
 function ScoreRing({ score, label }: { score: number; label: string }) {
-  const r = 36;
+  const r = 40;
   const circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
+
+  const strokeColor =
+    score >= 70
+      ? "hsl(var(--primary))"
+      : score >= 40
+        ? "#f59e0b"
+        : "hsl(var(--destructive))";
+
+  const labelColor =
+    score >= 70
+      ? "text-primary"
+      : score >= 40
+        ? "text-amber-500"
+        : "text-destructive";
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="96" height="96" viewBox="0 0 96 96">
-        <circle
-          cx="48"
-          cy="48"
-          r={r}
-          fill="none"
-          stroke="hsl(var(--muted))"
-          strokeWidth="8"
-        />
-        <motion.circle
-          cx="48"
-          cy="48"
-          r={r}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeDashoffset={circ / 4}
-          initial={{ strokeDasharray: `0 ${circ}` }}
-          animate={{ strokeDasharray: `${dash} ${circ}` }}
-          transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
-        />
-        <text
-          x="48"
-          y="48"
-          textAnchor="middle"
-          dy="0.35em"
-          fontSize="16"
-          fontWeight="700"
-          fill="hsl(var(--foreground))"
-        >
-          {score}
-        </text>
-      </svg>
-      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+      <div className="relative">
+        <svg width="96" height="96" viewBox="0 0 100 100">
+          {/* Background track */}
+          <circle
+            cx="50"
+            cy="50"
+            r={r}
+            fill="none"
+            stroke="hsl(var(--muted))"
+            strokeWidth="8"
+          />
+          {/* Animated progress */}
+          <motion.circle
+            cx="50"
+            cy="50"
+            r={r}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={`${(score / 100) * circ} ${circ}`}
+            strokeDashoffset={circ / 4}
+            initial={{ strokeDasharray: `0 ${circ}` }}
+            animate={{ strokeDasharray: `${(score / 100) * circ} ${circ}` }}
+            transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+          />
+          <text
+            x="50"
+            y="46"
+            textAnchor="middle"
+            fontSize="20"
+            fontWeight="700"
+            fill="var(--foreground)"
+          >
+            {score}
+          </text>
+          <text
+            x="50"
+            y="60"
+            textAnchor="middle"
+            fontSize="9"
+            fill="hsl(var(--muted-foreground))"
+          ></text>
+        </svg>
+      </div>
+      <p
+        className={`text-[10px] font-bold uppercase tracking-widest ${labelColor}`}
+      >
+        {label}
+      </p>
     </div>
   );
 }
@@ -420,17 +441,6 @@ export default function Insights() {
   }, [trades, loading, isPro]);
 
   const regenerateInsights = () => {
-    // if (lastGeneratedAt) {
-    //   const hoursSince =
-    //     (Date.now() - new Date(lastGeneratedAt).getTime()) / (1000 * 60 * 60);
-    //   if (hoursSince < 1) {
-    //     const minutesLeft = Math.ceil((1 - hoursSince) * 60);
-    //     toast.error(
-    //       `Cooldown... Try again in ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""}.`,
-    //     );
-    //     return;
-    //   }
-    // }
     generateAiInsights(true);
   };
 
@@ -932,7 +942,7 @@ Remember to follow the exact section format from your instructions. Be specific 
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">AI Coach</h1>
-              <p className="text-xs mt-0.5 text-muted-foreground hidden md:block">
+              <p className="text-xs text-muted-foreground hidden md:block">
                 Your favorite coach
               </p>
             </div>
