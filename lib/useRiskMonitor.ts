@@ -9,7 +9,7 @@ const DEFAULT_RULES = {
   account_balance: 10000,
   max_daily_loss_pct: 3,
   max_weekly_drawdown_pct: 6,
-  max_trades_per_day: 5,
+  max_trades_per_day: 3,
 };
 
 export function useRiskMonitor(userId: string | null) {
@@ -39,7 +39,6 @@ export function useRiskMonitor(userId: string | null) {
           .limit(100),
       ]);
 
-      // Use saved rules or fall back to defaults if no row yet
       const rules = rulesRes.data ?? DEFAULT_RULES;
       const trades = tradesRes.data || [];
 
@@ -73,7 +72,6 @@ export function useRiskMonitor(userId: string | null) {
       const dailyLossLimit =
         (rules.max_daily_loss_pct / 100) * rules.account_balance;
 
-      // Daily loss alerts
       const dailyUsedPct =
         Math.abs(todayPnL < 0 ? todayPnL : 0) / (dailyLossLimit || 1);
 
@@ -93,7 +91,6 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
-      // Weekly drawdown alerts
       const weekUsedPct = weekRoi / (rules.max_weekly_drawdown_pct || 1);
 
       if (weekUsedPct >= 1 && canNotify("week_breach")) {
@@ -112,7 +109,6 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
-      // Max trades alerts
       if (
         todayCount >= rules.max_trades_per_day &&
         canNotify("trades_breach")
@@ -131,7 +127,6 @@ export function useRiskMonitor(userId: string | null) {
         });
       }
 
-      // Consecutive losses
       const recent = trades.slice(0, 5);
       let consecutiveLosses = 0;
       for (const t of recent) {
@@ -151,7 +146,6 @@ export function useRiskMonitor(userId: string | null) {
       }
     };
 
-    // Run immediately then every 3 minutes
     check();
     const interval = setInterval(check, 3 * 60 * 1000);
     return () => clearInterval(interval);

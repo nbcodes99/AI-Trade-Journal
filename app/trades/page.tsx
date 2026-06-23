@@ -46,6 +46,7 @@ import Link from "next/link";
 import { getTradeRoi, getTradeDate, type Trade } from "@/lib/tradeCalculations";
 import router from "next/router";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 type SortKey = "date" | "asset" | "roi" | "result" | "trade_type";
 type SortDir = "asc" | "desc";
@@ -72,6 +73,8 @@ export default function Trades() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showFilters, setShowFilters] = useState(false);
   const pageSize = 10;
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTrades = async () => {
@@ -424,7 +427,7 @@ export default function Trades() {
                     return (
                       <TableRow
                         className="border-b border-border/50 hover:bg-muted/30 transition-colors group cursor-pointer"
-                        onClick={() => setSelectedTrade(trade)}
+                        onClick={() => router.push(`/trades/${trade.id}`)}
                         key={trade.id || idx}
                       >
                         <TableCell className="py-3.5 text-sm text-muted-foreground font-medium">

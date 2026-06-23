@@ -211,14 +211,14 @@ export default function Dashboard() {
 
     return trades.filter((t) => new Date(t.created_at || t.date) >= startDate);
   };
-  const formatMoney = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
+  // const formatMoney = (value: number) => {
+  //   return new Intl.NumberFormat("en-US", {
+  //     style: "currency",
+  //     currency: "USD",
+  //     minimumFractionDigits: 2,
+  //     maximumFractionDigits: 2,
+  //   }).format(value);
+  // };
   const filteredTrades = getFilteredTrades();
 
   const stats = useMemo(() => calcAllStats(filteredTrades), [filteredTrades]);
@@ -273,18 +273,6 @@ export default function Dashboard() {
     else break;
   }
 
-  // const equityData = filteredTrades.map((t, i) => ({
-  //   trade: i + 1,
-  //   value: parseFloat(
-  //     filteredTrades
-  //       .slice(0, i + 1)
-  //       .reduce((acc, x) => acc + getRoi(x), 0)
-  //       .toFixed(2),
-  //   ),
-  //   label: t.asset || `#${i + 1}`,
-  //   date: t.created_at,
-  // }));
-
   const winLossData = [
     { name: "Wins", value: wins },
     { name: "Losses", value: losses },
@@ -304,14 +292,13 @@ export default function Dashboard() {
     count: s.count,
   }));
 
-  // const recentTrades = trades.slice(-5).reverse();
   const pnlPositive = totalPnL >= 0;
   const winRateNum = parseFloat(winRate);
 
   const EquityTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-xl border border-border bg-background/95 backdrop-blur-sm px-3 py-2 shadow-lg text-xs">
+      <div className="rounded-xl border border-border bg-background backdrop-blur-sm px-3 py-2 shadow-lg text-xs">
         <p className="text-muted-foreground mb-1">{label}</p>
         <p className="font-bold text-primary">
           {payload[0].value >= 0 ? "+" : ""}

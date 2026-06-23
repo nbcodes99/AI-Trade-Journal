@@ -665,8 +665,8 @@ export default function Home() {
                   custom={2}
                   className="text-muted-foreground leading-relaxed"
                 >
-                  Every field that matters — entry, exit, position size, setup,
-                  emotion, confluence — with a live P&L preview as you type. No
+                  Every field that matters. Entry, exit, position size, setup,
+                  emotion, confluence, with a live P&L preview as you type. No
                   spreadsheet can do this.
                 </motion.p>
                 <motion.ul variants={fadeUp} custom={3} className="space-y-2.5">

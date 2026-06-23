@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +70,8 @@ export default function ProfilePage() {
   const [checkingPro, setCheckingPro] = useState(true);
   const [unsubscribeModalOpen, setUnsubscribeModalOpen] = useState(false);
   const [unsubscribing, setUnsubscribing] = useState(false);
+  const [deleteDataModalOpen, setDeleteDataModalOpen] = useState(false);
+  const [deletingData, setDeletingData] = useState(false);
   const [stats, setStats] = useState<{
     total: number;
     wins: number;
@@ -172,6 +173,26 @@ export default function ProfilePage() {
     setDeleting(false);
   };
 
+  const handleDeleteTradingData = async () => {
+    if (!userId) return;
+    setDeletingData(true);
+    try {
+      const { error } = await supabase
+        .from("trades")
+        .delete()
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      setStats({ total: 0, wins: 0, losses: 0, totalRoi: 0 });
+      setDeleteDataModalOpen(false);
+      toast.success("All your trading data has been deleted.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete data.");
+    }
+    setDeletingData(false);
+  };
+
   const handleSaveProfile = async () => {
     if (!userId) return;
     setSavingProfile(true);
@@ -239,6 +260,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    toast.success("Signed out successfully.");
     window.location.href = "/";
   };
 
@@ -637,26 +659,76 @@ export default function ProfilePage() {
                 </Button>
               </div>
             )}
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5 mb-4">
               <div>
                 <p className="text-sm font-semibold text-foreground">
                   Delete My Data
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Permanently remove all trades you have logged. This action
-                  cannot be undone.
+                  Permanently remove all trades you have logged. Your account
+                  stays active, but this action cannot be undone.
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                // onClick={() => setDeleteTradesModalOpen(true)}
-                // disabled={deletingTrades || trades.length === 0}
+              <AlertDialog
+                open={deleteDataModalOpen}
+                onOpenChange={setDeleteDataModalOpen}
               >
-                <Trash2 className="h-4 w-4" />
-                Delete My Data
-              </Button>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2 shrink-0"
+                    disabled={!stats || stats.total === 0}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete My Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Delete all your trading data?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all{" "}
+                      <span className="font-semibold text-foreground">
+                        {stats?.total ?? 0} trades
+                      </span>{" "}
+                      you've logged, along with their stats and history. Your
+                      account, profile, and subscription will remain active.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletingData}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteTradingData();
+                      }}
+                      variant="destructive"
+                      disabled={deletingData}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
+                    >
+                      {deletingData ? (
+                        <span className="flex items-center gap-2">
+                          <Spinner />
+                          Deleting...
+                        </span>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Yes, Delete My Data
+                        </>
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5">
@@ -692,24 +764,28 @@ export default function ProfilePage() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel disabled={deleting}>
+                      Cancel
+                    </AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleDeleteAccount}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteAccount();
+                      }}
+                      variant="destructive"
                       disabled={deleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
                     >
                       {deleting ? (
-                        <Button
-                          className="flex items-center gap-2"
-                          variant="destructive"
-                        >
+                        <span className="flex items-center gap-2">
                           <Spinner />
                           Deleting...
-                        </Button>
+                        </span>
                       ) : (
-                        <Button className="gap-2">
+                        <>
                           <Trash2 className="h-4 w-4" />
                           Yes, Delete My Account
-                        </Button>
+                        </>
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>

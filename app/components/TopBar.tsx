@@ -6,6 +6,7 @@ import {
   Settings,
   LogOut,
   TrendingUp,
+  TrendingDown,
   X,
   Clock,
   ArrowRight,
@@ -16,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/session";
-import { searchTradesBySetup } from "@/lib/search";
 import { useRouter, usePathname } from "next/navigation";
 import { ModeToggle } from "./ModeToggle";
 import {
@@ -30,12 +30,14 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const PAGE_META: Record<string, { label: string }> = {
   "/dashboard": { label: "Dashboard" },
   "/trades": { label: "Trade Journal" },
   "/insights": { label: "Insights" },
   "/journal": { label: "Log Trade" },
+  "/risk-manager": { label: "Risk Manager" },
   "/profile": { label: "Settings" },
 };
 
@@ -44,6 +46,7 @@ const NAV_LINKS = [
   { href: "/trades", label: "Trades" },
   { href: "/insights", label: "Insights" },
   { href: "/journal", label: "Journal" },
+  { href: "/risk-manager", label: "Risk Manager" },
 ];
 
 export function TopBar() {
@@ -51,6 +54,7 @@ export function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
   const userId = session?.user?.id ?? null;
+
   const userName =
     session?.user?.user_metadata?.full_name ||
     session?.user?.user_metadata?.name ||
@@ -68,7 +72,7 @@ export function TopBar() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [searching, setSearching] = useState(false);
   const [quickStats, setQuickStats] = useState<{
     trades: number;
     winRate: string;
@@ -88,28 +92,22 @@ export function TopBar() {
         .eq("user_id", userId);
       if (!data) return;
       const wins = data.filter((t) => t.result === "win").length;
-      const wr = data.length ? ((wins / data.length) * 100).toFixed(1) : "0.0";
-      setQuickStats({ trades: data.length, winRate: wr });
+      setQuickStats({
+        trades: data.length,
+        winRate: data.length ? ((wins / data.length) * 100).toFixed(1) : "0.0",
+      });
     };
     fetchStats();
-  }, [userId]);
 
-  useEffect(() => {
-    if (!userId) return;
-    const fetchSubscriptionTier = async () => {
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("plan")
-          .eq("id", userId)
-          .single();
-        setSubscriptionTier(data?.plan === "pro" ? "pro" : "free");
-      } catch (error) {
-        console.error("Error fetching subscription tier:", error);
-        setSubscriptionTier("free");
-      }
+    const fetchPlan = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", userId)
+        .single();
+      setSubscriptionTier(data?.plan === "pro" ? "pro" : "free");
     };
-    fetchSubscriptionTier();
+    fetchPlan();
   }, [userId]);
 
   useEffect(() => {
@@ -129,38 +127,59 @@ export function TopBar() {
   }, [searchOpen]);
 
   useEffect(() => {
-    if (!q || !userId) {
+    if (!q.trim() || !userId) {
       setResults([]);
+      setSearching(false);
       return;
     }
+
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    setSearching(true);
+
     debounceRef.current = window.setTimeout(async () => {
-      const trades = await searchTradesBySetup({
-        setupQuery: q,
-        userId,
-        limit: 8,
-      });
-      setResults(trades || []);
+      // Search across ALL meaningful fields
+      const { data } = await supabase
+        .from("trades")
+        .select(
+          "id, asset, setup, result, trade_type, emotion, roi, pnl, date, created_at, session, timeframe, market_condition, notes",
+        )
+        .eq("user_id", userId)
+        .or(
+          `asset.ilike.%${q}%,` +
+            `setup.ilike.%${q}%,` +
+            `emotion.ilike.%${q}%,` +
+            `result.ilike.%${q}%,` +
+            `trade_type.ilike.%${q}%,` +
+            `market_condition.ilike.%${q}%,` +
+            `session.ilike.%${q}%,` +
+            `timeframe.ilike.%${q}%,` +
+            `notes.ilike.%${q}%`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      setResults(data || []);
+      setSearching(false);
     }, 250);
+
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
   }, [q, userId]);
 
-  const handleSelectSetup = (setup: string) => {
-    if (setup && !recentSearches.includes(setup)) {
-      setRecentSearches((prev) => [setup, ...prev].slice(0, 5));
-    }
+  const handleSelectTrade = (trade: any) => {
     setSearchOpen(false);
     setQ("");
     setResults([]);
-    router.push(`/view-trades?setup=${encodeURIComponent(setup)}`);
+    router.push(`/trades/${trade.id}`);
   };
 
-  const uniqueSetups = Array.from(
-    new Set(results.map((t: any) => (t.setup || "").trim()).filter(Boolean)),
-  );
+  const getRoi = (t: any) => {
+    const r = typeof t.roi === "string" ? parseFloat(t.roi) : t.roi;
+    return isNaN(r) ? 0 : r;
+  };
 
+  const getTradeDate = (t: any) => new Date(t.date || t.created_at);
   const currentPage = PAGE_META[pathname] || { label: "Glint" };
 
   return (
@@ -186,9 +205,7 @@ export function TopBar() {
                   {currentPage.label}
                 </span>
               </div>
-
               <div className="h-4 w-px bg-border" />
-
               {quickStats && (
                 <div className="items-center gap-2 hidden lg:flex">
                   <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1">
@@ -204,11 +221,7 @@ export function TopBar() {
                       WR
                     </span>
                     <span
-                      className={`text-xs font-extrabold ${
-                        parseFloat(quickStats.winRate) >= 50
-                          ? "text-primary"
-                          : "text-destructive"
-                      }`}
+                      className={`text-xs font-extrabold ${parseFloat(quickStats.winRate) >= 50 ? "text-primary" : "text-destructive"}`}
                     >
                       {quickStats.winRate}%
                     </span>
@@ -221,7 +234,7 @@ export function TopBar() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-2 h-9 px-3 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground text-sm hover:bg-muted hover:text-foreground transition-all duration-150 min-w-[180px]"
+              className="hidden md:flex items-center gap-2 h-9 px-3 rounded-lg border border-border/60 bg-muted/40 text-muted-foreground text-sm hover:bg-muted hover:text-foreground transition-all min-w-[200px]"
             >
               <Search className="h-3.5 w-3.5 shrink-0" />
               <span className="flex-1 text-left text-xs">Search trades...</span>
@@ -239,8 +252,7 @@ export function TopBar() {
 
             <Link href="/journal" className="hidden md:flex">
               <Button size="sm" className="gap-1.5 h-9 font-semibold text-xs">
-                <BookOpen className="h-3.5 w-3.5" />
-                Log Trade
+                <BookOpen className="h-3.5 w-3.5" /> Log Trade
               </Button>
             </Link>
 
@@ -276,7 +288,6 @@ export function TopBar() {
                     </Badge>
                   </div>
                 </div>
-
                 <div className="py-1">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 pt-2 pb-1">
                     Account
@@ -301,16 +312,6 @@ export function TopBar() {
                       <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/trades"
-                      className="flex items-center gap-2 cursor-pointer md:hidden"
-                    >
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <span>View Trades</span>
-                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden">
                     <span className="text-sm">Theme</span>
                     <div className="ml-auto">
@@ -318,9 +319,7 @@ export function TopBar() {
                     </div>
                   </DropdownMenuItem>
                 </div>
-
                 <DropdownMenuSeparator />
-
                 <div className="py-1">
                   <DropdownMenuItem
                     className="flex items-center gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
@@ -339,16 +338,19 @@ export function TopBar() {
         </div>
       </header>
 
+      {/* Search modal */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="p-0 gap-0 max-w-md overflow-hidden rounded-2xl border border-border shadow-2xl">
+        <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden rounded-2xl border border-border shadow-2xl">
           <DialogTitle className="sr-only">Search Trades</DialogTitle>
+
+          {/* Input */}
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input
               ref={inputRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by setup..."
+              placeholder="Search by asset, setup, emotion, result..."
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
             {q && (
@@ -357,71 +359,121 @@ export function TopBar() {
                   setQ("");
                   setResults([]);
                 }}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
 
-          <div className="max-h-[380px] overflow-y-auto">
-            {uniqueSetups.length > 0 && (
-              <div className="p-2">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Setups matching "{q}"
-                </p>
-                {uniqueSetups.map((setup) => (
-                  <button
-                    key={setup}
-                    onClick={() => handleSelectSetup(setup)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left group"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground capitalize">
-                        {setup}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {results.filter((t: any) => t.setup === setup).length}{" "}
-                        trade
-                        {results.filter((t: any) => t.setup === setup)
-                          .length !== 1
-                          ? "s"
-                          : ""}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
+          <div className="max-h-[420px] overflow-y-auto">
+            {/* Loading */}
+            {searching && (
+              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <span className="text-sm">Searching...</span>
               </div>
             )}
 
-            {!q && recentSearches.length > 0 && (
+            {/* Results */}
+            {!searching && q && results.length > 0 && (
               <div className="p-2">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Recent Searches
+                <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  {results.length} trade{results.length !== 1 ? "s" : ""} found
                 </p>
-                {recentSearches.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleSelectSetup(s)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left group"
-                  >
-                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1 text-sm text-muted-foreground capitalize">
-                      {s}
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
+                {results.map((trade) => {
+                  const roi = getRoi(trade);
+                  const isWin = trade.result === "win";
+                  const isLoss = trade.result === "loss";
+                  return (
+                    <button
+                      key={trade.id}
+                      onClick={() => handleSelectTrade(trade)}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left group"
+                    >
+                      {/* Direction icon */}
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl border shrink-0 ${
+                          trade.trade_type === "long"
+                            ? "border-primary/30 bg-primary/10"
+                            : trade.trade_type === "short"
+                              ? "border-destructive/30 bg-destructive/10"
+                              : "border-border bg-muted"
+                        }`}
+                      >
+                        {trade.trade_type === "long" ? (
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                        ) : trade.trade_type === "short" ? (
+                          <TrendingDown className="h-4 w-4 text-destructive" />
+                        ) : (
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-extrabold text-foreground">
+                            {trade.asset || "—"}
+                          </span>
+                          <div
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                              isWin
+                                ? "bg-primary/15 text-primary"
+                                : isLoss
+                                  ? "bg-destructive/15 text-destructive"
+                                  : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <span
+                              className={`h-1 w-1 rounded-full ${isWin ? "bg-primary" : isLoss ? "bg-destructive" : "bg-muted-foreground"}`}
+                            />
+                            {trade.result?.toUpperCase() || "—"}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {trade.setup || "No setup"}{" "}
+                          {trade.emotion ? `· ${trade.emotion}` : ""}
+                          {trade.date || trade.created_at
+                            ? ` · ${format(new Date(trade.date || trade.created_at), "MMM d, yyyy")}`
+                            : ""}
+                        </p>
+                      </div>
+
+                      {/* ROI */}
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`text-sm font-extrabold tabular-nums ${roi > 0 ? "text-primary" : roi < 0 ? "text-destructive" : "text-muted-foreground"}`}
+                        >
+                          {roi > 0 ? "+" : ""}
+                          {roi.toFixed(2)}%
+                        </span>
+                      </div>
+
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  );
+                })}
               </div>
             )}
 
+            {/* No results */}
+            {!searching && q && results.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <Search className="h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm font-semibold text-foreground">
+                  No trades found
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Try searching by asset, setup, emotion, result, or session
+                </p>
+              </div>
+            )}
+
+            {/* Quick nav (shown when no query) */}
             {!q && (
-              <div className="p-2 border-t border-border">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <div className="p-2">
+                <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Quick Navigation
                 </p>
                 {NAV_LINKS.map((link) => (
@@ -434,10 +486,10 @@ export function TopBar() {
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left group"
                   >
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold border border-border bg-muted ${
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-bold ${
                         pathname === link.href
                           ? "border-primary/30 bg-primary/10 text-primary"
-                          : "text-muted-foreground"
+                          : "border-border bg-muted text-muted-foreground"
                       }`}
                     >
                       {link.label[0]}
@@ -455,29 +507,14 @@ export function TopBar() {
                 ))}
               </div>
             )}
-
-            {q && uniqueSetups.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <Search className="h-8 w-8 text-muted-foreground/40" />
-                <p className="text-sm font-medium text-foreground">
-                  No setups found
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Try a different pattern or setup name
-                </p>
-              </div>
-            )}
           </div>
 
-          <div
-            className="flex
-           items-center gap-4 px-4 py-2.5 border-t border-border bg-muted/30"
-          >
+          <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border bg-muted/30">
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px]">
                 ↵
               </kbd>{" "}
-              Select
+              Open
             </span>
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px]">
@@ -485,12 +522,8 @@ export function TopBar() {
               </kbd>{" "}
               Close
             </span>
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
-              <Command className="h-2.5 w-2.5" />
-              <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[9px]">
-                K
-              </kbd>{" "}
-              to open
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              Search by asset, setup, emotion, result, session
             </span>
           </div>
         </DialogContent>
