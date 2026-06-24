@@ -44,6 +44,116 @@ export const getTradeRoi = (trade: Trade): number => {
   return (pnl / balance) * 100;
 };
 
+// Add to app/lib/tradeCalculations.ts
+
+export interface RiskRules {
+  account_balance: number;
+  max_risk_per_trade_pct: number;
+  max_daily_loss_pct: number;
+  max_weekly_drawdown_pct: number;
+  max_trades_per_day: number;
+  min_rr_ratio: number;
+  max_position_size: number;
+}
+
+/**
+ * Analyzes how well a trader followed their own risk rules across all trades.
+ * Returns violation counts and an overall discipline score.
+ */
+export const calcRiskCompliance = (trades: Trade[], rules: RiskRules) => {
+  if (!trades.length || !rules) {
+    return {
+      rrViolations: 0,
+      rrViolationRate: 0,
+      oversizedTrades: 0,
+      oversizedRate: 0,
+      avgRiskPerTrade: 0,
+      maxRiskTaken: 0,
+      tradesOverRiskLimit: 0,
+      disciplineScore: 0,
+      daysOverTradeLimit: 0,
+    };
+  }
+
+  let rrViolations = 0;
+  let oversizedTrades = 0;
+  let tradesOverRiskLimit = 0;
+  let totalRiskPct = 0;
+  let maxRiskTaken = 0;
+  let validRiskCount = 0;
+
+  trades.forEach((t) => {
+    const entry = parseNum(t.entry);
+    const stop = parseNum(t.stop_loss);
+    const tp = parseNum(t.take_profit);
+    const posSize = parseNum(t.position_size);
+    const balance = parseNum(t.account_balance) || rules.account_balance;
+
+    // Check R:R compliance
+    if (entry && stop && tp) {
+      const risk = Math.abs(entry - stop);
+      const reward = Math.abs(tp - entry);
+      if (risk > 0) {
+        const rr = reward / risk;
+        if (rr < rules.min_rr_ratio) rrViolations++;
+      }
+    }
+
+    // Check risk % per trade
+    if (entry && stop && posSize && balance) {
+      const riskAmount = Math.abs(entry - stop) * posSize;
+      const riskPct = (riskAmount / balance) * 100;
+      totalRiskPct += riskPct;
+      validRiskCount++;
+      if (riskPct > maxRiskTaken) maxRiskTaken = riskPct;
+      if (riskPct > rules.max_risk_per_trade_pct) tradesOverRiskLimit++;
+    }
+
+    // Check position size limit
+    if (posSize && balance) {
+      const posPct = (posSize / balance) * 100;
+      if (posPct > rules.max_position_size) oversizedTrades++;
+    }
+  });
+
+  // Check days where trade count exceeded limit
+  const tradesByDay: Record<string, number> = {};
+  trades.forEach((t) => {
+    const day = getTradeDate(t).toDateString();
+    tradesByDay[day] = (tradesByDay[day] || 0) + 1;
+  });
+  const daysOverTradeLimit = Object.values(tradesByDay).filter(
+    (count) => count > rules.max_trades_per_day,
+  ).length;
+
+  const avgRiskPerTrade = validRiskCount ? totalRiskPct / validRiskCount : 0;
+
+  // Discipline score (0-100): penalize violations
+  const total = trades.length;
+  const rrViolationRate = (rrViolations / total) * 100;
+  const oversizedRate = (oversizedTrades / total) * 100;
+  const riskLimitRate = (tradesOverRiskLimit / total) * 100;
+
+  const disciplineScore = Math.max(
+    0,
+    Math.round(
+      100 - rrViolationRate * 0.4 - oversizedRate * 0.3 - riskLimitRate * 0.3,
+    ),
+  );
+
+  return {
+    rrViolations,
+    rrViolationRate: parseFloat(rrViolationRate.toFixed(1)),
+    oversizedTrades,
+    oversizedRate: parseFloat(oversizedRate.toFixed(1)),
+    avgRiskPerTrade: parseFloat(avgRiskPerTrade.toFixed(2)),
+    maxRiskTaken: parseFloat(maxRiskTaken.toFixed(2)),
+    tradesOverRiskLimit,
+    disciplineScore,
+    daysOverTradeLimit,
+  };
+};
+
 export const getTradePnl = (trade: Trade): number => {
   if (trade.pnl !== null && trade.pnl !== undefined && trade.pnl !== "") {
     return parseNum(trade.pnl);

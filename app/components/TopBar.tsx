@@ -184,7 +184,10 @@ export function TopBar() {
 
   return (
     <>
-      <header className="w-full border-b border-border/60 bg-background/70 backdrop-blur-xl z-20 sticky top-0">
+      <header
+        className="w-full border-b border-border/60 bg-background/70 backdrop-blur-xl z-20 sticky top-0"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="flex items-center justify-between px-4 md:px-6 p-6">
           <div className="flex items-center gap-4 min-w-0">
             <Link
@@ -338,12 +341,10 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* Search modal */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden rounded-2xl border border-border shadow-2xl">
           <DialogTitle className="sr-only">Search Trades</DialogTitle>
 
-          {/* Input */}
           <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <input
@@ -367,7 +368,6 @@ export function TopBar() {
           </div>
 
           <div className="max-h-[420px] overflow-y-auto">
-            {/* Loading */}
             {searching && (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <div className="h-4 w-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -375,7 +375,6 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Results */}
             {!searching && q && results.length > 0 && (
               <div className="p-2">
                 <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -391,7 +390,6 @@ export function TopBar() {
                       onClick={() => handleSelectTrade(trade)}
                       className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted transition-colors text-left group"
                     >
-                      {/* Direction icon */}
                       <div
                         className={`flex h-9 w-9 items-center justify-center rounded-xl border shrink-0 ${
                           trade.trade_type === "long"
@@ -410,7 +408,6 @@ export function TopBar() {
                         )}
                       </div>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-extrabold text-foreground">
@@ -440,7 +437,6 @@ export function TopBar() {
                         </p>
                       </div>
 
-                      {/* ROI */}
                       <div className="text-right shrink-0">
                         <span
                           className={`text-sm font-extrabold tabular-nums ${roi > 0 ? "text-primary" : roi < 0 ? "text-destructive" : "text-muted-foreground"}`}
@@ -457,7 +453,6 @@ export function TopBar() {
               </div>
             )}
 
-            {/* No results */}
             {!searching && q && results.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-12 text-center">
                 <Search className="h-8 w-8 text-muted-foreground/30" />
@@ -470,7 +465,6 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Quick nav (shown when no query) */}
             {!q && (
               <div className="p-2">
                 <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">

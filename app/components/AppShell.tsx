@@ -11,6 +11,7 @@ import Footer from "./Footer";
 import { PageTransition } from "./PageTransition";
 import { Toaster } from "@/components/ui/sonner";
 import { useRiskMonitor } from "@/lib/useRiskMonitor";
+import InstallPrompt from "./InstallPrompt";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -68,6 +69,7 @@ export default function AppShell({ children }: AppShellProps) {
         </main>
       </div>
       <BottomNav />
+      <InstallPrompt />
     </ThemeProvider>
   );
 }

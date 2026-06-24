@@ -22,7 +22,10 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed md:hidden bottom-0 left-0 right-0 z-50">
+    <nav
+      className="fixed md:hidden bottom-0 left-0 right-0 z-50"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-3 mb-3 rounded-2xl border border-border/60 bg-background/80 backdrop-blur-xl shadow-lg shadow-black/10 overflow-hidden">
         <div className="flex items-center justify-around px-1 h-16">
           {navItems.map(({ href, icon: Icon, label }) => {

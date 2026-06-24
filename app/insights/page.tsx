@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { calcRiskCompliance, type RiskRules } from "@/lib/tradeCalculations";
 import { Spinner } from "@radix-ui/themes";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -382,6 +383,7 @@ export default function Insights() {
   const [lastTradeCount, setLastTradeCount] = useState<number>(0);
   const [aiInsights, setAiInsights] = useState<string>("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [riskRules, setRiskRules] = useState<RiskRules | null>(null);
   const [aiSections, setAiSections] = useState<{
     overview: string;
     strengths: string;
@@ -394,7 +396,7 @@ export default function Insights() {
     if (!userId) return;
     const load = async () => {
       setCheckingPro(true);
-      const [tradesRes, profileRes] = await Promise.all([
+      const [tradesRes, profileRes, riskRes] = await Promise.all([
         supabase
           .from("trades")
           .select("*")
@@ -407,6 +409,7 @@ export default function Insights() {
           )
           .eq("id", userId)
           .single(),
+        supabase.from("risk_rules").select("*").eq("user_id", userId).single(),
       ]);
 
       const fetchedTrades = tradesRes.data || [];
@@ -620,6 +623,10 @@ export default function Insights() {
     setAiSections(null);
 
     try {
+      const riskCompliance = riskRules
+        ? calcRiskCompliance(trades, riskRules)
+        : null;
+
       const summary = {
         totalTrades,
         winRate: `${winRate.toFixed(1)}%`,
@@ -634,6 +641,29 @@ export default function Insights() {
         bestDay: bestDay?.day,
         worstDay: worstDay?.day,
         monthlyPnL: monthlyData,
+
+        riskRules: riskRules
+          ? {
+              maxRiskPerTrade: `${riskRules.max_risk_per_trade_pct}%`,
+              maxDailyLoss: `${riskRules.max_daily_loss_pct}%`,
+              maxWeeklyDrawdown: `${riskRules.max_weekly_drawdown_pct}%`,
+              maxTradesPerDay: riskRules.max_trades_per_day,
+              minRRRatio: `${riskRules.min_rr_ratio}:1`,
+              maxPositionSize: `${riskRules.max_position_size}%`,
+            }
+          : "User has not set up risk rules yet",
+
+        riskCompliance: riskCompliance
+          ? {
+              disciplineScore: `${riskCompliance.disciplineScore}/100`,
+              tradesBelowMinRR: `${riskCompliance.rrViolations} trades (${riskCompliance.rrViolationRate}% of all trades)`,
+              tradesOverRiskLimit: `${riskCompliance.tradesOverRiskLimit} trades exceeded their max risk per trade rule`,
+              oversizedPositions: `${riskCompliance.oversizedTrades} trades exceeded max position size rule`,
+              avgRiskPerTrade: `${riskCompliance.avgRiskPerTrade}% (their rule allows ${riskRules?.max_risk_per_trade_pct}%)`,
+              highestRiskTaken: `${riskCompliance.maxRiskTaken}% on a single trade`,
+              daysOverTradeLimit: `${riskCompliance.daysOverTradeLimit} days where they exceeded their max trades/day rule`,
+            }
+          : "No risk compliance data available",
       };
 
       const prompt = `Analyze this trader's journal data and write a personalized coaching report.
@@ -641,7 +671,7 @@ export default function Insights() {
 TRADER DATA:
 ${JSON.stringify(summary, null, 2)}
 
-Remember to follow the exact section format from your instructions. Be specific — reference their actual numbers, setups, and emotional patterns.`;
+Remember to follow the exact section format from your instructions. Be specific — reference their actual numbers, setups, emotional patterns, AND how well they followed their own risk management rules. If they have a low discipline score or frequent rule violations, call it out directly in WHAT'S HURTING YOUR PERFORMANCE and YOUR BEHAVIORAL PATTERNS.`;
 
       const response = await fetch("/api/insights", {
         method: "POST",
@@ -659,40 +689,36 @@ Remember to follow the exact section format from your instructions. Be specific 
       if (!raw) throw new Error("Empty response from AI");
 
       const parse = (key: string, nextKey?: string): string => {
-        const keyWithColon = `${key}:`;
-        const startIdx = raw.indexOf(keyWithColon);
+        const startIdx = raw.indexOf(`${key}`);
         if (startIdx === -1) return "";
-        const contentStart = startIdx + keyWithColon.length;
+        const contentStart = startIdx + key.length;
         const content = raw.slice(contentStart);
         if (!nextKey) return content.trim();
-        const nextKeyWithColon = `${nextKey}:`;
-        const endIdx = content.indexOf(nextKeyWithColon);
+        const endIdx = content.indexOf(nextKey);
         return endIdx === -1 ? content.trim() : content.slice(0, endIdx).trim();
       };
 
       const sections = {
-        overview: parse("OVERVIEW", "WHAT YOU'RE DOING WELL"),
+        overview: parse("📊 OVERVIEW:", "✅ WHAT YOU'RE DOING WELL:"),
         strengths: parse(
-          "WHAT YOU'RE DOING WELL",
-          "WHAT'S HURTING YOUR PERFORMANCE",
+          "✅ WHAT YOU'RE DOING WELL:",
+          "⚠️ WHAT'S HURTING YOUR PERFORMANCE:",
         ),
         weaknesses: parse(
-          "WHAT'S HURTING YOUR PERFORMANCE",
-          "YOUR BEHAVIORAL PATTERNS",
+          "⚠️ WHAT'S HURTING YOUR PERFORMANCE:",
+          "🧠 YOUR BEHAVIORAL PATTERNS:",
         ),
         behavior: parse(
-          "YOUR BEHAVIORAL PATTERNS",
-          "MY RECOMMENDATION FOR YOU",
+          "🧠 YOUR BEHAVIORAL PATTERNS:",
+          "🎯 MY RECOMMENDATION FOR YOU:",
         ),
-        recommendation: parse("MY RECOMMENDATION FOR YOU"),
+        recommendation: parse("🎯 MY RECOMMENDATION FOR YOU:"),
       };
 
       if (!sections.overview)
         throw new Error("Response format was unexpected — retry.");
 
       const now = new Date().toISOString();
-
-      // Save to Supabase
       await supabase
         .from("profiles")
         .update({
