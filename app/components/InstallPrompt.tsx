@@ -6,7 +6,9 @@ import { X, Share, PlusSquare, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISMISS_KEY = "glint_install_prompt_dismissed_at";
-const DISMISS_DAYS = 7;
+const DISMISS_COUNT_KEY = "glint_install_prompt_dismissed_count";
+const DISMISS_DAYS = 14;
+const RETRY_VISITS = 3;
 
 function isIos() {
   return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
@@ -25,17 +27,26 @@ export default function InstallPrompt() {
   const [platform, setPlatform] = useState<"ios" | "android" | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  const DISMISS_KEY = "glint_install_prompt_dismissed_at";
-  const DISMISS_DAYS = 14;
-
   useEffect(() => {
     if (isInStandaloneMode()) return;
 
     const dismissedAt = localStorage.getItem(DISMISS_KEY);
+    const dismissedCount = parseInt(
+      localStorage.getItem(DISMISS_COUNT_KEY) ?? "0",
+      10,
+    );
+
     if (dismissedAt) {
       const daysSince =
-        (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
-      if (daysSince < DISMISS_DAYS) return;
+        (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60 * 24);
+      const nextCount = dismissedCount + 1;
+
+      if (daysSince < DISMISS_DAYS && nextCount < RETRY_VISITS) {
+        localStorage.setItem(DISMISS_COUNT_KEY, String(nextCount));
+        return;
+      }
+
+      localStorage.setItem(DISMISS_COUNT_KEY, "0");
     }
 
     if (isIos()) {
@@ -58,12 +69,17 @@ export default function InstallPrompt() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setShow(false);
+    if (outcome === "accepted") {
+      localStorage.removeItem(DISMISS_KEY);
+      localStorage.removeItem(DISMISS_COUNT_KEY);
+      setShow(false);
+    }
     setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    localStorage.setItem(DISMISS_COUNT_KEY, "0");
     setShow(false);
   };
 

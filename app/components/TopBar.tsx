@@ -13,6 +13,7 @@ import {
   Command,
   ChevronRight,
   BookOpen,
+  ListCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -311,7 +312,17 @@ export function TopBar() {
                       className="flex items-center gap-2 cursor-pointer md:hidden"
                     >
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <span>Log a Trade</span>
+                      <span>Log Trade</span>
+                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/trades"
+                      className="flex items-center gap-2 cursor-pointer md:hidden"
+                    >
+                      <ListCheck className="h-4 w-4 text-muted-foreground" />
+                      <span>View Trades</span>
                       <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
                     </Link>
                   </DropdownMenuItem>
