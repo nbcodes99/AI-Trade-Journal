@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import fs from "fs";
 
-const SRC = "./public/glint1.png";
+const SRC = "./public/glint3.png";
 const OUT = "./public/icons";
 
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });

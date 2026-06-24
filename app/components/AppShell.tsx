@@ -61,15 +61,15 @@ export default function AppShell({ children }: AppShellProps) {
       disableTransitionOnChange
     >
       <Toaster richColors position="top-center" />
+      <InstallPrompt />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-col flex-1 overflow-hidden ml-0 md:ml-56">
+      <div className="flex flex-col flex-1 overflow-auto ml-0 md:ml-56">
         <TopBar />
-        <main className="flex-1 overflow-auto bg-background p-6 pb-20 md:pb-6">
+        <main className="flex-1 bg-background p-6">
           <PageTransition>{children}</PageTransition>
         </main>
       </div>
       <BottomNav />
-      <InstallPrompt />
     </ThemeProvider>
   );
 }

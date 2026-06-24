@@ -25,8 +25,15 @@ export default function InstallPrompt() {
   const [platform, setPlatform] = useState<"ios" | "android" | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
+  const INSTALLED_KEY = "glint_is_installed";
+
   useEffect(() => {
-    if (isInStandaloneMode()) return;
+    if (isInStandaloneMode()) {
+      localStorage.setItem(INSTALLED_KEY, "true");
+      return;
+    }
+
+    if (localStorage.getItem(INSTALLED_KEY) === "true") return;
 
     const dismissedAt = localStorage.getItem(DISMISS_KEY);
     if (dismissedAt) {
