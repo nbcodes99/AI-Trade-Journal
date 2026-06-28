@@ -70,6 +70,13 @@ const getStatus = (
   return "safe";
 };
 
+const formatLotSize = (units: number) => {
+  const lots = units / 100000;
+  if (lots >= 0.01) return lots.toFixed(2);
+  const microLots = units / 1000;
+  return microLots.toFixed(3);
+};
+
 const StatusBadge = ({ status }: { status: "safe" | "warning" | "breach" }) => (
   <Badge
     className={`text-[10px] font-bold uppercase tracking-wide ${
@@ -374,8 +381,9 @@ export default function RiskManager() {
     const riskAmount = (riskPct / 100) * balance;
     const pipRisk = Math.abs(entry - stop);
     if (pipRisk === 0) return null;
-    const positionSize = riskAmount / pipRisk;
-    const potentialGain = tp ? Math.abs(tp - entry) * positionSize : null;
+    const positionSizeUnits = riskAmount / pipRisk;
+    const lotSize = formatLotSize(positionSizeUnits);
+    const potentialGain = tp ? Math.abs(tp - entry) * positionSizeUnits : null;
     const rrRatio = tp ? (Math.abs(tp - entry) / pipRisk).toFixed(2) : null;
     const meetsMinRR = rrRatio
       ? parseFloat(rrRatio) >= rules.min_rr_ratio
@@ -383,7 +391,8 @@ export default function RiskManager() {
     return {
       riskAmount,
       pipRisk,
-      positionSize,
+      positionSizeUnits,
+      lotSize,
       potentialGain,
       rrRatio,
       meetsMinRR,
@@ -1056,9 +1065,14 @@ export default function RiskManager() {
                       <div className="space-y-4">
                         {[
                           {
-                            label: "Position Size",
-                            value: calcResults.positionSize.toFixed(4),
+                            label: "Position Size (Lots)",
+                            value: `${calcResults.lotSize} lots`,
                             highlight: true,
+                          },
+                          {
+                            label: "Position Size (Units)",
+                            value: calcResults.positionSizeUnits.toFixed(2),
+                            highlight: false,
                           },
                           {
                             label: "Risk Amount",
@@ -1285,11 +1299,8 @@ export default function RiskManager() {
                     </CardHeader>
                     <CardContent className="space-y-2 text-left">
                       {[
-                        // "Is my R:R at least 1:2?",
-                        // "Have I NOT hit my daily loss limit?",
                         "Is my emotional state calm?",
                         "Does the setup match my strategy?",
-                        // "Is there no major news event?",
                         "Am I trading in my best session?",
                         "Is the market condition clear?",
                         "Have I checked higher timeframe bias?",
