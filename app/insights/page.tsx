@@ -642,6 +642,19 @@ export default function Insights() {
         worstDay: worstDay?.day,
         monthlyPnL: monthlyData,
 
+        traderNotes: trades
+          .filter((t) => t.notes && t.notes.trim().length > 0)
+          .slice(-20)
+          .map((t) => ({
+            asset: t.asset || "Unknown",
+            result: t.result || "Unknown",
+            roi: `${getRoi(t) >= 0 ? "+" : ""}${getRoi(t).toFixed(2)}%`,
+            emotion: t.emotion || null,
+            setup: t.setup || null,
+            note: t.notes.trim(),
+            date: t.date || t.created_at,
+          })),
+
         riskRules: riskRules
           ? {
               maxRiskPerTrade: `${riskRules.max_risk_per_trade_pct}%`,
